@@ -1,0 +1,131 @@
+/* Actual Amount Updater */
+.actual-amount-updater {
+  background: var(--background);
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px var(--shadow);
+}
+
+.actual-amount-updater h3 {
+  margin-bottom: 1.5rem;
+  font-size: 1.25rem;
+}
+
+.actual-amount-updater h4 {
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.update-form {
+  max-width: 100%;
+}
+
+/* Entries List */
+.actual-entries-list {
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.entries {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.entry-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  transition: all 0.2s;
+}
+
+.entry-item:hover {
+  border-color: var(--danger-color);
+  background: rgba(239, 68, 68, 0.02);
+}
+
+.entry-info {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex: 1;
+}
+
+.entry-date {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  min-width: 100px;
+}
+
+.entry-amount {
+  font-size: 1rem;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.btn-delete-entry {
+  background: transparent;
+  color: var(--danger-color);
+  padding: 0.25rem 0.5rem;
+  font-size: 1rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  border-radius: 4px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.btn-delete-entry:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: var(--danger-color);
+}
+
+/* Form Row */
+.actual-amount-updater .form-row {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.actual-amount-updater .form-row .form-group {
+  flex: 1;
+}
+
+.actual-amount-updater .form-row button {
+  margin-top: 1.5rem; /* Align with inputs since labels take space */
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .actual-amount-updater {
+    padding: 1rem;
+  }
+
+  .actual-amount-updater .form-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .actual-amount-updater .form-row button {
+    margin-top: 0;
+    width: 100%;
+  }
+
+  .entry-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .entry-date {
+    min-width: auto;
+  }
+}

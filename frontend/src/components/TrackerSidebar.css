@@ -1,0 +1,182 @@
+/* Sidebar Toggle Button */
+.sidebar-toggle {
+  position: fixed;
+  top: 5rem;
+  left: 1rem;
+  z-index: 1001;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 0.5rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: 0 2px 8px var(--shadow);
+  transition: all 0.3s;
+}
+
+.sidebar-toggle:hover {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  transform: scale(1.05);
+}
+
+/* Overlay */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Sidebar */
+.tracker-sidebar {
+  position: fixed;
+  top: 0;
+  left: -500px;
+  width: 480px;
+  height: 100vh;
+  background: var(--background);
+  border-right: 1px solid var(--border);
+  box-shadow: 4px 0 12px var(--shadow);
+  z-index: 1000;
+  overflow-y: auto;
+  transition: left 0.3s ease-in-out;
+  padding: 1.5rem;
+  padding-top: 5rem;
+}
+
+.tracker-sidebar.open {
+  left: 0;
+}
+
+/* Sidebar Header */
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.sidebar-header h3 {
+  font-size: 1.25rem;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Form Container */
+.form-container {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: var(--surface);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+/* Investment List */
+.investment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.investment-item {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  transition: all 0.2s;
+}
+
+.investment-item > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+
+.investment-item:hover {
+  border-color: var(--primary-color);
+  background: var(--surface);
+}
+
+.investment-item.active {
+  border-color: var(--primary-color);
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.investment-item.portfolio-tracker {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(37, 99, 235, 0.05));
+}
+
+.investment-item.portfolio-tracker.active {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(37, 99, 235, 0.15));
+  border-color: var(--primary-color);
+  border-width: 2px;
+}
+
+.investment-info {
+  flex: 1;
+}
+
+.investment-name {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-primary);
+}
+
+.ibkr-badge {
+  display: inline-block;
+  font-size: 0.65em;
+  font-weight: 600;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.investment-meta {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.investment-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .tracker-sidebar {
+    width: 100%;
+    left: -100%;
+  }
+
+  .sidebar-toggle {
+    top: 4.5rem;
+  }
+}

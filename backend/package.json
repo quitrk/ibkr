@@ -1,0 +1,37 @@
+{
+  "name": "ibkr-tracing-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Backend API for IBKR Investment Tracing",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:fast\" \"npm run typecheck:watch\"",
+    "dev:fast": "tsx watch src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "typecheck:watch": "tsc --noEmit --watch --preserveWatchOutput",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint . --ext .ts"
+  },
+  "keywords": ["ibkr", "investment", "tracking", "api"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@stoqey/ib": "^1.5.1",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "date-fns": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/cors": "^2.8.17",
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^6.14.0",
+    "@typescript-eslint/parser": "^6.14.0",
+    "concurrently": "^8.2.2",
+    "eslint": "^8.55.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.2.2"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "additionalDirectories": [
+      "/Users/tavram/Projects/"
+    ],
+    "allow": [
+      "Bash(cat:*)"
+    ]
+  }
+}

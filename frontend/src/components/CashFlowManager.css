@@ -1,0 +1,153 @@
+/* Cash Flow Manager */
+.cash-flow-manager {
+  background: var(--background);
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px var(--shadow);
+}
+
+.cash-flow-manager h3 {
+  margin-bottom: 0.5rem;
+  font-size: 1.25rem;
+}
+
+.cash-flow-manager h4 {
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.cash-flow-description {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+}
+
+.net-cash-flow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: var(--surface);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  margin-bottom: 1.5rem;
+}
+
+.net-label {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.net-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.net-value.positive {
+  color: var(--success-color);
+}
+
+.net-value.negative {
+  color: var(--danger-color);
+}
+
+.cash-flow-list {
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.cash-flow-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  margin-bottom: 0.5rem;
+  transition: all 0.2s;
+}
+
+.cash-flow-item.deposit {
+  border-left: 3px solid var(--success-color);
+}
+
+.cash-flow-item.withdrawal {
+  border-left: 3px solid var(--danger-color);
+}
+
+.cash-flow-item:hover {
+  border-color: var(--danger-color);
+  background: rgba(239, 68, 68, 0.02);
+}
+
+.cash-flow-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.cash-flow-date {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.cash-flow-amount {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.cash-flow-amount.deposit {
+  color: var(--success-color);
+}
+
+.cash-flow-amount.withdrawal {
+  color: var(--danger-color);
+}
+
+.cash-flow-form {
+  max-width: 100%;
+}
+
+.cash-flow-form .form-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr) auto;
+  gap: 1rem;
+  align-items: end;
+}
+
+.cash-flow-form select {
+  width: 100%;
+  padding: 0.625rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 1rem;
+  background: var(--background);
+  color: var(--text-primary);
+  transition: border-color 0.2s;
+}
+
+.cash-flow-form select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .cash-flow-manager {
+    padding: 1rem;
+  }
+
+  .cash-flow-form .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .cash-flow-info {
+    align-items: flex-start;
+  }
+}
