@@ -2,11 +2,13 @@
 
 A full-stack application for tracking and visualizing investment performance with Interactive Brokers integration.
 
+![App Screenshot](./screenshot.png)
+
 ## Features
 
 - **Manual Investment Tracking**: Create custom investment projections and track actual vs projected performance
 - **IBKR Integration**: Connect to your Interactive Brokers account to automatically import portfolio positions
-- **Real-time Portfolio Sync**: Fetch current positions and values from IBKR
+- **Real-time Portfolio Updates**: Live Server-Sent Events stream for instant portfolio updates from IBKR
 - **Visual Analytics**: Chart.js powered visualizations comparing projected vs actual performance
 - **Flexible Date Ranges**: Filter and view data across custom time periods
 - **Hybrid Approach**: Mix manual entries with automated IBKR data
@@ -17,13 +19,16 @@ A full-stack application for tracking and visualizing investment performance wit
 - React 18 + TypeScript
 - Vite for fast development
 - Chart.js for data visualization
+- Server-Sent Events for real-time updates
+- Custom `useIBKRStream` hook with automatic reconnection
 - Local storage for data persistence
 
 ### Backend
 - Node.js + Express
 - TypeScript
 - @stoqey/ib for Interactive Brokers API integration
-- RESTful API endpoints
+- Server-Sent Events (SSE) for real-time portfolio updates
+- Event-driven architecture with EventEmitter
 
 ## Prerequisites
 
@@ -184,52 +189,13 @@ npm run preview
 - `POST /api/ibkr/connect` - Connect to IBKR TWS/Gateway
 - `POST /api/ibkr/disconnect` - Disconnect from IBKR
 - `GET /api/ibkr/status` - Get connection status
-- `GET /api/ibkr/account/summary` - Get account summary and net liquidation
-- `GET /api/ibkr/positions` - Get current portfolio positions
+- `GET /api/ibkr/stream` - Server-Sent Events stream for real-time account and portfolio updates
 - `GET /api/ibkr/historical/:symbol` - Get historical data for a symbol
+- `GET /api/ibkr/config/defaults` - Get default IBKR connection configuration
 
 ### Health Check
 
 - `GET /api/health` - Server health check
-
-## Project Structure
-
-```
-ibkr-tracing/
-├── backend/
-│   ├── src/
-│   │   ├── index.ts              # Express server
-│   │   ├── routes/
-│   │   │   └── ibkr.ts           # IBKR API routes
-│   │   ├── services/
-│   │   │   └── IBKRService.ts    # IBKR connection service
-│   │   └── types/
-│   │       └── index.ts          # TypeScript types
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── .env
-├── frontend/
-│   ├── src/
-│   │   ├── App.tsx               # Main app component
-│   │   ├── main.tsx              # Entry point
-│   │   ├── components/
-│   │   │   ├── InvestmentForm.tsx
-│   │   │   ├── ProgressChart.tsx
-│   │   │   ├── IBKRConnection.tsx
-│   │   │   ├── IBKRPositionSelector.tsx
-│   │   │   └── ...
-│   │   ├── api/
-│   │   │   ├── storage.ts        # LocalStorage API
-│   │   │   └── ibkrApi.ts        # Backend API calls
-│   │   ├── types/
-│   │   │   └── investment.ts     # TypeScript types
-│   │   └── utils/
-│   │       └── calculations.ts   # Calculation utilities
-│   ├── package.json
-│   ├── vite.config.ts
-│   └── tsconfig.json
-└── README.md
-```
 
 ## Troubleshooting
 
