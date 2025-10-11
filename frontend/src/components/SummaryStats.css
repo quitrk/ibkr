@@ -30,6 +30,17 @@
   border: 1px solid var(--border);
 }
 
+.stat-card-combined .stat-combined-content {
+  display: flex;
+  gap: 2rem;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stat-card-combined .stat-section {
+  flex: 1;
+}
+
 .stat-label {
   font-size: 0.875rem;
   color: var(--text-secondary);
@@ -94,14 +105,26 @@
 }
 
 .config-value .actual-avg {
-  color: var(--text-secondary);
   font-size: 0.8125rem;
   margin-left: 0.25rem;
+}
+
+.config-value .actual-avg.positive {
+  color: var(--success-color);
+}
+
+.config-value .actual-avg.negative {
+  color: var(--danger-color);
 }
 
 @media (max-width: 640px) {
   .stats-grid {
     grid-template-columns: 1fr;
+  }
+
+  .stat-card-combined .stat-combined-content {
+    flex-direction: column;
+    gap: 1.5rem;
   }
 
   .config-info {

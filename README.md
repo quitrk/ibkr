@@ -1,12 +1,12 @@
-# IBKR Investment Tracing
+# IBKR Trade Tracing
 
-A full-stack application for tracking and visualizing investment performance with Interactive Brokers integration.
+A full-stack application for tracking and visualizing trade performance with Interactive Brokers integration.
 
 ![App Screenshot](./screenshot.png)
 
 ## Features
 
-- **Manual Investment Tracking**: Create custom investment projections and track actual vs projected performance
+- **Manual Trade Tracking**: Create custom trade projections and track actual vs projected performance
 - **IBKR Integration**: Connect to your Interactive Brokers account to automatically import portfolio positions
 - **Real-time Portfolio Updates**: Live Server-Sent Events stream for instant portfolio updates from IBKR
 - **Visual Analytics**: Chart.js powered visualizations comparing projected vs actual performance

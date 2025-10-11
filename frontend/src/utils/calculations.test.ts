@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { calculateActualAverageIncrease, countBusinessDays, calculateProjection } from './calculations';
-import type { ActualDataPoint, CashFlow } from '../types/investment';
+import type { ActualDataPoint, CashFlow } from '../types/trackers';
 
 describe('calculateActualAverageIncrease', () => {
-  // Shared actual data - investment values only, excluding cash flows
+  // Shared actual data - tracker values only, excluding cash flows
   const baseActualData: ActualDataPoint[] = [
     { date: '2025-10-09', amount: 41450 },
     { date: '2025-10-10', amount: 41984.05 }

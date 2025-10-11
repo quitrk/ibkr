@@ -1,7 +1,7 @@
 {
   "name": "ibkr-tracing",
   "version": "1.0.0",
-  "description": "Investment tracking application with Interactive Brokers integration",
+  "description": "Trade tracking application with Interactive Brokers integration",
   "scripts": {
     "install:all": "cd backend && npm install && cd ../frontend && npm install",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
@@ -11,7 +11,7 @@
     "build:backend": "cd backend && npm run build",
     "build:frontend": "cd frontend && npm run build"
   },
-  "keywords": ["ibkr", "investment", "tracking", "interactive-brokers"],
+  "keywords": ["ibkr", "trading", "tracking", "interactive-brokers"],
   "author": "",
   "license": "MIT",
   "devDependencies": {

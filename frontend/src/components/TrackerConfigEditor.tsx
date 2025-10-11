@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import './InvestmentConfigEditor.css';
+import './TrackerConfigEditor.css';
 
-interface InvestmentConfigEditorProps {
+interface TrackerConfigEditorProps {
   currentConfig?: {
     name: string;
     startingAmount: number;
@@ -15,7 +15,7 @@ interface InvestmentConfigEditorProps {
   isOpen?: boolean;
 }
 
-export function InvestmentConfigEditor({ currentConfig, onSave, onCancel, isOpen = false }: InvestmentConfigEditorProps) {
+export function TrackerConfigEditor({ currentConfig, onSave, onCancel, isOpen = false }: TrackerConfigEditorProps) {
   const [name, setName] = useState(currentConfig?.name || '');
   const [startingAmount, setStartingAmount] = useState(
     currentConfig?.startingAmount.toString() || ''
@@ -70,7 +70,7 @@ export function InvestmentConfigEditor({ currentConfig, onSave, onCancel, isOpen
   if (!isOpen) return null;
 
   return (
-    <div className="investment-config-editor">
+    <div className="tracker-config-editor">
       <div className="config-panel">
         <h4>Tracker Settings</h4>
         <p className="config-help">
@@ -85,7 +85,7 @@ export function InvestmentConfigEditor({ currentConfig, onSave, onCancel, isOpen
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="My Investment"
+                placeholder="My Tracker"
               />
             </div>
 

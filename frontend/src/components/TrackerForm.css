@@ -1,5 +1,5 @@
-/* Investment Form */
-.investment-form,
+/* Tracker Form */
+.tracker-form,
 .form-container {
   background: var(--surface);
   padding: 1.5rem;
@@ -7,7 +7,7 @@
   margin-bottom: 1rem;
 }
 
-.investment-form h2 {
+.tracker-form h2 {
   margin-bottom: 1.5rem;
   font-size: 1.25rem;
 }

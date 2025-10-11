@@ -5,7 +5,7 @@ import {
   getIBKRConnectionStatus,
   getIBKRDefaults,
 } from '../api/ibkrApi';
-import type { IBKRConnectionConfig } from '../types/investment';
+import type { IBKRConnectionConfig } from '../types/trackers';
 import { useIBKRStream } from '../hooks/useIBKRStream';
 import './IBKRConnection.css';
 

@@ -1,12 +1,12 @@
-import type { Investment, InvestmentConfig, ActualDataPoint, CashFlow } from '../types/investment';
+import type { Tracker, TrackerConfig, ActualDataPoint, CashFlow } from '../types/trackers';
 
-const STORAGE_KEY = 'investment-tracing-data';
+const STORAGE_KEY = 'tracker-tracing-data';
 
 /**
  * Storage API Layer - handles all localStorage operations
  */
 
-export function getAllInvestments(): Investment[] {
+export function getAllTrackers(): Tracker[] {
   try {
     const data = localStorage.getItem(STORAGE_KEY);
     return data ? JSON.parse(data) : [];
@@ -16,123 +16,123 @@ export function getAllInvestments(): Investment[] {
   }
 }
 
-export function getInvestmentById(id: string): Investment | null {
-  const investments = getAllInvestments();
-  return investments.find(inv => inv.config.id === id) || null;
+export function getTrackerById(id: string): Tracker | null {
+  const trackers = getAllTrackers();
+  return trackers.find(inv => inv.config.id === id) || null;
 }
 
-export function saveInvestment(investment: Investment): void {
+export function saveTracker(tracker: Tracker): void {
   try {
-    const investments = getAllInvestments();
-    const existingIndex = investments.findIndex(inv => inv.config.id === investment.config.id);
+    const trackers = getAllTrackers();
+    const existingIndex = trackers.findIndex(inv => inv.config.id === tracker.config.id);
 
     if (existingIndex >= 0) {
-      investments[existingIndex] = investment;
+      trackers[existingIndex] = tracker;
     } else {
-      investments.push(investment);
+      trackers.push(tracker);
     }
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(investments));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(trackers));
   } catch (error) {
     console.error('Error saving to localStorage:', error);
-    throw new Error('Failed to save investment data');
+    throw new Error('Failed to save tracker data');
   }
 }
 
-export function createInvestment(config: InvestmentConfig): Investment {
-  const investment: Investment = {
+export function createTracker(config: TrackerConfig): Tracker {
+  const tracker: Tracker = {
     config,
     actualData: [],
     cashFlows: [],
   };
 
-  saveInvestment(investment);
-  return investment;
+  saveTracker(tracker);
+  return tracker;
 }
 
-export function addActualDataPoint(investmentId: string, dataPoint: ActualDataPoint): void {
-  const investment = getInvestmentById(investmentId);
-  if (!investment) {
-    throw new Error('Investment not found');
+export function addActualDataPoint(trackerId: string, dataPoint: ActualDataPoint): void {
+  const tracker = getTrackerById(trackerId);
+  if (!tracker) {
+    throw new Error('Tracker not found');
   }
 
   // Remove existing data point for the same date if it exists
-  investment.actualData = investment.actualData.filter(
+  tracker.actualData = tracker.actualData.filter(
     point => point.date !== dataPoint.date
   );
 
   // Add new data point
-  investment.actualData.push(dataPoint);
+  tracker.actualData.push(dataPoint);
 
   // Sort by date
-  investment.actualData.sort((a, b) =>
+  tracker.actualData.sort((a, b) =>
     new Date(a.date).getTime() - new Date(b.date).getTime()
   );
 
-  saveInvestment(investment);
+  saveTracker(tracker);
 }
 
 export function updateActualDataPoint(
-  investmentId: string,
+  trackerId: string,
   date: string,
   amount: number
 ): void {
-  addActualDataPoint(investmentId, { date, amount });
+  addActualDataPoint(trackerId, { date, amount });
 }
 
-export function deleteActualDataPoint(investmentId: string, date: string): void {
-  const investment = getInvestmentById(investmentId);
-  if (!investment) {
-    throw new Error('Investment not found');
+export function deleteActualDataPoint(trackerId: string, date: string): void {
+  const tracker = getTrackerById(trackerId);
+  if (!tracker) {
+    throw new Error('Tracker not found');
   }
 
-  investment.actualData = investment.actualData.filter(
+  tracker.actualData = tracker.actualData.filter(
     point => point.date !== date
   );
 
-  saveInvestment(investment);
+  saveTracker(tracker);
 }
 
-export function updateInvestmentEndDate(investmentId: string, endDate: string): void {
-  const investment = getInvestmentById(investmentId);
-  if (!investment) {
-    throw new Error('Investment not found');
+export function updateTrackerEndDate(trackerId: string, endDate: string): void {
+  const tracker = getTrackerById(trackerId);
+  if (!tracker) {
+    throw new Error('Tracker not found');
   }
 
-  investment.config.endDate = endDate;
-  saveInvestment(investment);
+  tracker.config.endDate = endDate;
+  saveTracker(tracker);
 }
 
-export function updateInvestmentConfig(investmentId: string, updates: Partial<InvestmentConfig>): void {
-  const investment = getInvestmentById(investmentId);
-  if (!investment) {
-    throw new Error('Investment not found');
+export function updateTrackerConfig(trackerId: string, updates: Partial<TrackerConfig>): void {
+  const tracker = getTrackerById(trackerId);
+  if (!tracker) {
+    throw new Error('Tracker not found');
   }
 
-  investment.config = { ...investment.config, ...updates };
-  saveInvestment(investment);
+  tracker.config = { ...tracker.config, ...updates };
+  saveTracker(tracker);
 }
 
-export function deleteInvestment(id: string): void {
+export function deleteTracker(id: string): void {
   try {
-    const investments = getAllInvestments();
-    const filtered = investments.filter(inv => inv.config.id !== id);
+    const trackers = getAllTrackers();
+    const filtered = trackers.filter(inv => inv.config.id !== id);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
   } catch (error) {
     console.error('Error deleting from localStorage:', error);
-    throw new Error('Failed to delete investment');
+    throw new Error('Failed to delete tracker');
   }
 }
 
-export function addCashFlow(investmentId: string, cashFlow: Omit<CashFlow, 'id'>): void {
-  const investment = getInvestmentById(investmentId);
-  if (!investment) {
-    throw new Error('Investment not found');
+export function addCashFlow(trackerId: string, cashFlow: Omit<CashFlow, 'id'>): void {
+  const tracker = getTrackerById(trackerId);
+  if (!tracker) {
+    throw new Error('Tracker not found');
   }
 
   // Initialize cashFlows array if it doesn't exist (backwards compatibility)
-  if (!investment.cashFlows) {
-    investment.cashFlows = [];
+  if (!tracker.cashFlows) {
+    tracker.cashFlows = [];
   }
 
   // Add new cash flow with unique ID
@@ -141,27 +141,27 @@ export function addCashFlow(investmentId: string, cashFlow: Omit<CashFlow, 'id'>
     id: crypto.randomUUID(),
   };
 
-  investment.cashFlows.push(newCashFlow);
+  tracker.cashFlows.push(newCashFlow);
 
   // Sort by date
-  investment.cashFlows.sort((a, b) =>
+  tracker.cashFlows.sort((a, b) =>
     new Date(a.date).getTime() - new Date(b.date).getTime()
   );
 
-  saveInvestment(investment);
+  saveTracker(tracker);
 }
 
-export function deleteCashFlow(investmentId: string, cashFlowId: string): void {
-  const investment = getInvestmentById(investmentId);
-  if (!investment) {
-    throw new Error('Investment not found');
+export function deleteCashFlow(trackerId: string, cashFlowId: string): void {
+  const tracker = getTrackerById(trackerId);
+  if (!tracker) {
+    throw new Error('Tracker not found');
   }
 
-  if (!investment.cashFlows) return;
+  if (!tracker.cashFlows) return;
 
-  investment.cashFlows = investment.cashFlows.filter(cf => cf.id !== cashFlowId);
+  tracker.cashFlows = tracker.cashFlows.filter(cf => cf.id !== cashFlowId);
 
-  saveInvestment(investment);
+  saveTracker(tracker);
 }
 
 export function clearAllData(): void {

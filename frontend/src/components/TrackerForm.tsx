@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { format, addYears } from 'date-fns';
-import type { InvestmentConfig } from '../types/investment';
-import './InvestmentForm.css';
+import type { TrackerConfig } from '../types/trackers';
+import './TrackerForm.css';
 
-interface InvestmentFormProps {
-  onSubmit: (config: InvestmentConfig) => void;
+interface TrackerFormProps {
+  onSubmit: (config: TrackerConfig) => void;
 }
 
-export function InvestmentForm({ onSubmit }: InvestmentFormProps) {
+export function TrackerForm({ onSubmit }: TrackerFormProps) {
   const today = new Date();
   const oneYearLater = addYears(today, 1);
 
@@ -27,9 +27,9 @@ export function InvestmentForm({ onSubmit }: InvestmentFormProps) {
       return;
     }
 
-    const config: InvestmentConfig = {
+    const config: TrackerConfig = {
       id: crypto.randomUUID(),
-      name: name || 'Investment Tracker',
+      name: name || 'Trade Tracker',
       startingAmount: parseFloat(startingAmount),
       projectedIncreasePercent: parseFloat(projectedIncreasePercent),
       intervalDays: parseInt(intervalDays, 10),
@@ -52,8 +52,8 @@ export function InvestmentForm({ onSubmit }: InvestmentFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="investment-form">
-      <h2>Create Investment Tracker</h2>
+    <form onSubmit={handleSubmit} className="tracker-form">
+      <h2>Create Trade Tracker</h2>
 
       <div className="form-group">
         <label htmlFor="name">Name (optional)</label>
@@ -62,7 +62,7 @@ export function InvestmentForm({ onSubmit }: InvestmentFormProps) {
           id="name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="My Investment"
+          placeholder="My Trade"
         />
       </div>
 

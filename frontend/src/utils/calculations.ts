@@ -1,5 +1,5 @@
 import { addDays, addYears, parseISO, format, isWeekend } from 'date-fns';
-import type { InvestmentConfig, ProjectedDataPoint, ActualDataPoint, CashFlow } from '../types/investment';
+import type { TrackerConfig, ProjectedDataPoint, ActualDataPoint, CashFlow } from '../types/trackers';
 
 /**
  * Check if a date is a business day (Monday-Friday)
@@ -44,11 +44,11 @@ export function countBusinessDays(startDate: Date, endDate: Date): number {
 }
 
 /**
- * Calculate projected investment values based on configuration
+ * Calculate projected tracker values based on configuration
  * Now uses business days for intervals and generates daily data points
  */
 export function calculateProjectedValues(
-  config: InvestmentConfig,
+  config: TrackerConfig,
   endDate?: Date
 ): ProjectedDataPoint[] {
   const startDate = parseISO(config.startDate);
@@ -255,7 +255,7 @@ export function calculateProjection(
       // Calculate new cash flows added in this period
       const newCashFlows = currentCashFlow - prevCashFlow;
 
-      // Apply compound growth to the entire previous value (investment + previous cash flows)
+      // Apply compound growth to the entire previous value (tracker + previous cash flows)
       const businessDaysBetween = countBusinessDays(parseISO(prevPoint.date), parseISO(point.date));
       const growthMultiplier = Math.pow(1 + growthRatePerDay, businessDaysBetween);
       const valueAfterGrowth = prevValue * growthMultiplier;

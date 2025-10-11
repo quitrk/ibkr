@@ -1,9 +1,14 @@
-/* Chart */
-.chart-container {
+/* Chart wrapper with controls */
+.chart-wrapper {
   background: var(--background);
-  padding: 2rem;
   border-radius: 8px;
   box-shadow: 0 2px 8px var(--shadow);
+  overflow: hidden;
+}
+
+/* Chart */
+.chart-container {
+  padding: 2rem;
   height: 400px;
 }
 

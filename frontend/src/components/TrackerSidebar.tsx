@@ -1,32 +1,32 @@
 import { useState } from 'react';
-import { InvestmentForm } from './InvestmentForm';
-import { InvestmentConfigEditor } from './InvestmentConfigEditor';
-import type { Investment, InvestmentConfig } from '../types/investment';
+import { TrackerForm } from './TrackerForm';
+import { TrackerConfigEditor } from './TrackerConfigEditor';
+import type { Tracker, TrackerConfig } from '../types/trackers';
 import './TrackerSidebar.css';
 
 interface TrackerSidebarProps {
-  investments: Investment[];
-  selectedInvestment: Investment | null;
-  onSelectInvestment: (investment: Investment) => void;
-  onCreateInvestment: (config: InvestmentConfig) => void;
-  onDeleteInvestment: (id: string) => void;
-  onConfigUpdate: (investmentId: string, name: string, startingAmount: number, projectedIncreasePercent: number, intervalDays: number, startDate: string, endDate: string) => void;
+  trackers: Tracker[];
+  selectedTracker: Tracker | null;
+  onSelectTracker: (tracker: Tracker) => void;
+  onCreateTracker: (config: TrackerConfig) => void;
+  onDeleteTracker: (id: string) => void;
+  onConfigUpdate: (trackerId: string, name: string, startingAmount: number, projectedIncreasePercent: number, intervalDays: number, startDate: string, endDate: string) => void;
 }
 
 export function TrackerSidebar({
-  investments,
-  selectedInvestment,
-  onSelectInvestment,
-  onCreateInvestment,
-  onDeleteInvestment,
+  trackers,
+  selectedTracker,
+  onSelectTracker,
+  onCreateTracker,
+  onDeleteTracker,
   onConfigUpdate,
 }: TrackerSidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [configuringId, setConfiguringId] = useState<string | null>(null);
 
-  const handleCreateInvestment = (config: InvestmentConfig) => {
-    onCreateInvestment(config);
+  const handleCreateTracker = (config: TrackerConfig) => {
+    onCreateTracker(config);
     setShowForm(false);
   };
 
@@ -61,12 +61,12 @@ export function TrackerSidebar({
 
         {showForm && (
           <div className="form-container">
-            <InvestmentForm onSubmit={handleCreateInvestment} />
+            <TrackerForm onSubmit={handleCreateTracker} />
           </div>
         )}
 
-        <div className="investment-list">
-          {investments
+        <div className="tracker-list">
+          {trackers
             .sort((a, b) => {
               // Portfolio tracker always first
               if (a.config.id === 'ibkr-portfolio') return -1;
@@ -74,37 +74,37 @@ export function TrackerSidebar({
               // Then by creation date
               return new Date(b.config.createdAt).getTime() - new Date(a.config.createdAt).getTime();
             })
-            .map((investment) => (
+            .map((tracker) => (
               <div
-                key={investment.config.id}
-                className={`investment-item ${
-                  selectedInvestment?.config.id === investment.config.id ? 'active' : ''
-                } ${investment.config.id === 'ibkr-portfolio' ? 'portfolio-tracker' : ''}`}
+                key={tracker.config.id}
+                className={`tracker-item ${
+                  selectedTracker?.config.id === tracker.config.id ? 'active' : ''
+                } ${tracker.config.id === 'ibkr-portfolio' ? 'portfolio-tracker' : ''}`}
               >
                 <div>
                   <div
-                    className="investment-info"
+                    className="tracker-info"
                     onClick={() => {
-                      onSelectInvestment(investment);
+                      onSelectTracker(tracker);
                       setIsOpen(false);
                     }}
                   >
-                    <div className="investment-name">
-                      {investment.config.name}
-                      {investment.config.ibkrSynced && (
+                    <div className="tracker-name">
+                      {tracker.config.name}
+                      {tracker.config.ibkrSynced && (
                         <span className="ibkr-badge" title="Synced with IBKR">IBKR</span>
                       )}
                     </div>
-                    <div className="investment-meta">
-                      {investment.config.projectedIncreasePercent}% every{' '}
-                      {investment.config.intervalDays} days
+                    <div className="tracker-meta">
+                      {tracker.config.projectedIncreasePercent}% every{' '}
+                      {tracker.config.intervalDays} days
                     </div>
                   </div>
-                  <div className="investment-actions">
+                  <div className="tracker-actions">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setConfiguringId(configuringId === investment.config.id ? null : investment.config.id);
+                        setConfiguringId(configuringId === tracker.config.id ? null : tracker.config.id);
                       }}
                       className="btn-icon"
                       title="Configure tracker"
@@ -114,7 +114,7 @@ export function TrackerSidebar({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onDeleteInvestment(investment.config.id);
+                        onDeleteTracker(tracker.config.id);
                       }}
                       className="btn-icon"
                       title="Delete tracker"
@@ -123,18 +123,18 @@ export function TrackerSidebar({
                     </button>
                   </div>
                 </div>
-                {configuringId === investment.config.id && (
-                  <InvestmentConfigEditor
+                {configuringId === tracker.config.id && (
+                  <TrackerConfigEditor
                     currentConfig={{
-                      name: investment.config.name,
-                      startingAmount: investment.config.startingAmount,
-                      projectedIncreasePercent: investment.config.projectedIncreasePercent,
-                      intervalDays: investment.config.intervalDays,
-                      startDate: investment.config.startDate,
-                      endDate: investment.config.endDate,
+                      name: tracker.config.name,
+                      startingAmount: tracker.config.startingAmount,
+                      projectedIncreasePercent: tracker.config.projectedIncreasePercent,
+                      intervalDays: tracker.config.intervalDays,
+                      startDate: tracker.config.startDate,
+                      endDate: tracker.config.endDate,
                     }}
                     onSave={(name, startingAmount, projectedIncreasePercent, intervalDays, startDate, endDate) => {
-                      onConfigUpdate(investment.config.id, name, startingAmount, projectedIncreasePercent, intervalDays, startDate, endDate);
+                      onConfigUpdate(tracker.config.id, name, startingAmount, projectedIncreasePercent, intervalDays, startDate, endDate);
                       setConfiguringId(null);
                     }}
                     onCancel={() => setConfiguringId(null)}

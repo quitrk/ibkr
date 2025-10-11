@@ -1,30 +1,30 @@
 import { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
-import type { Investment } from '../types/investment';
+import type { Tracker } from '../types/trackers';
 import { getLatestActualValue, formatCurrency } from '../utils/calculations';
 import './ActualAmountUpdater.css';
 
 interface ActualAmountUpdaterProps {
-  investment: Investment;
+  tracker: Tracker;
   onUpdate: (date: string, amount: number) => void;
   onDelete: (date: string) => void;
 }
 
-export function ActualAmountUpdater({ investment, onUpdate, onDelete }: ActualAmountUpdaterProps) {
+export function ActualAmountUpdater({ tracker, onUpdate, onDelete }: ActualAmountUpdaterProps) {
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
   // Get latest actual amount or use starting amount as default
   const getDefaultAmount = () => {
-    const latestActual = getLatestActualValue(investment.actualData);
-    return latestActual ? latestActual.amount : investment.config.startingAmount;
+    const latestActual = getLatestActualValue(tracker.actualData);
+    return latestActual ? latestActual.amount : tracker.config.startingAmount;
   };
 
   const [amount, setAmount] = useState(getDefaultAmount().toString());
 
-  // Update amount when investment changes
+  // Update amount when tracker changes
   useEffect(() => {
     setAmount(getDefaultAmount().toString());
-  }, [investment]);
+  }, [tracker]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,11 +48,11 @@ export function ActualAmountUpdater({ investment, onUpdate, onDelete }: ActualAm
     <div className="actual-amount-updater">
       <h3>Actual Amounts</h3>
 
-      {investment.actualData.length > 0 && (
+      {tracker.actualData.length > 0 && (
         <div className="actual-entries-list">
           <h4>Recorded Entries</h4>
           <div className="entries">
-            {investment.actualData.slice().reverse().map((entry) => (
+            {tracker.actualData.slice().reverse().map((entry) => (
               <div key={entry.date} className="entry-item">
                 <div className="entry-info">
                   <span className="entry-date">{format(parseISO(entry.date), 'MMM dd, yyyy')}</span>

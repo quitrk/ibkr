@@ -1,6 +1,6 @@
 import type {
   IBKRConnectionConfig,
-} from '../types/investment';
+} from '../types/trackers';
 
 const API_BASE = '/api/ibkr';
 

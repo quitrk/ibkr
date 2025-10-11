@@ -2,7 +2,7 @@
   "name": "ibkr-tracing-backend",
   "version": "1.0.0",
   "type": "module",
-  "description": "Backend API for IBKR Investment Tracing",
+  "description": "Backend API for IBKR Trade Tracing",
   "main": "dist/index.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:fast\" \"npm run typecheck:watch\"",
@@ -13,7 +13,7 @@
     "start": "node dist/index.js",
     "lint": "eslint . --ext .ts"
   },
-  "keywords": ["ibkr", "investment", "tracking", "api"],
+  "keywords": ["ibkr", "trading", "tracking", "api"],
   "author": "",
   "license": "MIT",
   "dependencies": {

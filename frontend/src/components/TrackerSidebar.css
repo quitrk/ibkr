@@ -91,14 +91,14 @@
   border: 1px solid var(--border);
 }
 
-/* Investment List */
-.investment-list {
+/* Tracker List */
+.tracker-list {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.investment-item {
+.tracker-item {
   display: flex;
   flex-direction: column;
   padding: 1rem;
@@ -107,38 +107,38 @@
   transition: all 0.2s;
 }
 
-.investment-item > div:first-child {
+.tracker-item > div:first-child {
   display: flex;
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
 }
 
-.investment-item:hover {
+.tracker-item:hover {
   border-color: var(--primary-color);
   background: var(--surface);
 }
 
-.investment-item.active {
+.tracker-item.active {
   border-color: var(--primary-color);
   background: rgba(59, 130, 246, 0.05);
 }
 
-.investment-item.portfolio-tracker {
+.tracker-item.portfolio-tracker {
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(37, 99, 235, 0.05));
 }
 
-.investment-item.portfolio-tracker.active {
+.tracker-item.portfolio-tracker.active {
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(37, 99, 235, 0.15));
   border-color: var(--primary-color);
   border-width: 2px;
 }
 
-.investment-info {
+.tracker-info {
   flex: 1;
 }
 
-.investment-name {
+.tracker-name {
   font-weight: 600;
   margin-bottom: 0.25rem;
   display: flex;
@@ -159,12 +159,12 @@
   letter-spacing: 0.5px;
 }
 
-.investment-meta {
+.tracker-meta {
   font-size: 0.75rem;
   color: var(--text-secondary);
 }
 
-.investment-actions {
+.tracker-actions {
   display: flex;
   gap: 0.25rem;
 }

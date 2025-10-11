@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
-import type { IBKRAccountSummary } from '../types/investment';
+import type { IBKRAccountSummary } from '../types/trackers';
 
 interface UseIBKRStreamOptions {
   enabled: boolean;

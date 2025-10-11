@@ -6,104 +6,104 @@ import { SummaryStats } from './components/SummaryStats';
 import { DateRangeSelector } from './components/DateRangeSelector';
 import { IBKRConnection } from './components/IBKRConnection';
 import { TrackerSidebar } from './components/TrackerSidebar';
-import type { Investment, InvestmentConfig, DateRange, CashFlow } from './types/investment';
+import type { Tracker, TrackerConfig, DateRange, CashFlow } from './types/trackers';
 import {
-  getAllInvestments,
-  createInvestment,
+  getAllTrackers,
+  createTracker,
   updateActualDataPoint,
   deleteActualDataPoint,
-  updateInvestmentConfig,
-  deleteInvestment,
+  updateTrackerConfig,
+  deleteTracker,
   addCashFlow,
   deleteCashFlow,
 } from './api/storage';
 import './App.css';
 
 function App() {
-  const [investments, setInvestments] = useState<Investment[]>([]);
-  const [selectedInvestment, setSelectedInvestment] = useState<Investment | null>(null);
+  const [trackers, setTrackers] = useState<Tracker[]>([]);
+  const [selectedTracker, setSelectedTracker] = useState<Tracker | null>(null);
   const [dateRange, setDateRange] = useState<DateRange | null>(null);
 
-  // Load investments from localStorage on mount
+  // Load trackers from localStorage on mount
   useEffect(() => {
-    const stored = getAllInvestments();
-    setInvestments(stored);
+    const stored = getAllTrackers();
+    setTrackers(stored);
 
     // Find portfolio tracker
     const portfolio = stored.find(inv => inv.config.id === 'ibkr-portfolio');
     if (portfolio) {
-      setSelectedInvestment(portfolio);
+      setSelectedTracker(portfolio);
     } else if (stored.length > 0) {
-      setSelectedInvestment(stored[0]);
+      setSelectedTracker(stored[0]);
     }
   }, []);
 
-  const handleCreateInvestment = (config: InvestmentConfig) => {
-    const newInvestment = createInvestment(config);
-    const updated = getAllInvestments();
-    setInvestments(updated);
-    setSelectedInvestment(newInvestment);
+  const handleCreateTracker = (config: TrackerConfig) => {
+    const newTracker = createTracker(config);
+    const updated = getAllTrackers();
+    setTrackers(updated);
+    setSelectedTracker(newTracker);
   };
 
   const handleUpdateActual = (date: string, amount: number) => {
-    if (!selectedInvestment) return;
+    if (!selectedTracker) return;
 
-    updateActualDataPoint(selectedInvestment.config.id, date, amount);
+    updateActualDataPoint(selectedTracker.config.id, date, amount);
 
     // Refresh data
-    const updated = getAllInvestments();
-    setInvestments(updated);
-    const refreshed = updated.find(inv => inv.config.id === selectedInvestment.config.id);
+    const updated = getAllTrackers();
+    setTrackers(updated);
+    const refreshed = updated.find(inv => inv.config.id === selectedTracker.config.id);
     if (refreshed) {
-      setSelectedInvestment(refreshed);
+      setSelectedTracker(refreshed);
     }
   };
 
   const handleDeleteActual = (date: string) => {
-    if (!selectedInvestment) return;
+    if (!selectedTracker) return;
 
-    deleteActualDataPoint(selectedInvestment.config.id, date);
+    deleteActualDataPoint(selectedTracker.config.id, date);
 
     // Refresh data
-    const updated = getAllInvestments();
-    setInvestments(updated);
-    const refreshed = updated.find(inv => inv.config.id === selectedInvestment.config.id);
+    const updated = getAllTrackers();
+    setTrackers(updated);
+    const refreshed = updated.find(inv => inv.config.id === selectedTracker.config.id);
     if (refreshed) {
-      setSelectedInvestment(refreshed);
+      setSelectedTracker(refreshed);
     }
   };
 
   const handleAddCashFlow = (cashFlow: Omit<CashFlow, 'id'>) => {
-    if (!selectedInvestment) return;
+    if (!selectedTracker) return;
 
-    addCashFlow(selectedInvestment.config.id, cashFlow);
+    addCashFlow(selectedTracker.config.id, cashFlow);
 
     // Refresh data
-    const updated = getAllInvestments();
-    setInvestments(updated);
-    const refreshed = updated.find(inv => inv.config.id === selectedInvestment.config.id);
+    const updated = getAllTrackers();
+    setTrackers(updated);
+    const refreshed = updated.find(inv => inv.config.id === selectedTracker.config.id);
     if (refreshed) {
-      setSelectedInvestment(refreshed);
+      setSelectedTracker(refreshed);
     }
   };
 
   const handleDeleteCashFlow = (cashFlowId: string) => {
-    if (!selectedInvestment) return;
+    if (!selectedTracker) return;
 
-    deleteCashFlow(selectedInvestment.config.id, cashFlowId);
+    deleteCashFlow(selectedTracker.config.id, cashFlowId);
 
     // Refresh data
-    const updated = getAllInvestments();
-    setInvestments(updated);
-    const refreshed = updated.find(inv => inv.config.id === selectedInvestment.config.id);
+    const updated = getAllTrackers();
+    setTrackers(updated);
+    const refreshed = updated.find(inv => inv.config.id === selectedTracker.config.id);
     if (refreshed) {
-      setSelectedInvestment(refreshed);
+      setSelectedTracker(refreshed);
     }
   };
 
-  const handleConfigUpdate = useCallback((investmentId: string, name: string, startingAmount: number, projectedIncreasePercent: number, intervalDays: number, startDate: string, endDate: string) => {
+  const handleConfigUpdate = useCallback((trackerId: string, name: string, startingAmount: number, projectedIncreasePercent: number, intervalDays: number, startDate: string, endDate: string) => {
     // Update the config using storage API
-    updateInvestmentConfig(investmentId, {
+    updateTrackerConfig(trackerId, {
       name,
       startingAmount,
       projectedIncreasePercent,
@@ -113,24 +113,24 @@ function App() {
     });
 
     // Refresh UI and reset date range
-    const updated = getAllInvestments();
-    setInvestments(updated);
-    const refreshed = updated.find(inv => inv.config.id === investmentId);
-    if (refreshed && selectedInvestment?.config.id === investmentId) {
-      setSelectedInvestment(refreshed);
+    const updated = getAllTrackers();
+    setTrackers(updated);
+    const refreshed = updated.find(inv => inv.config.id === trackerId);
+    if (refreshed && selectedTracker?.config.id === trackerId) {
+      setSelectedTracker(refreshed);
       // Reset date range so DateRangeSelector recalculates
       setDateRange(null);
     }
-  }, [selectedInvestment]);
+  }, [selectedTracker]);
 
-  const handleDeleteInvestment = (id: string) => {
-    if (confirm('Are you sure you want to delete this investment tracker?')) {
-      deleteInvestment(id);
-      const updated = getAllInvestments();
-      setInvestments(updated);
+  const handleDeleteTracker = (id: string) => {
+    if (confirm('Are you sure you want to delete this trade tracker?')) {
+      deleteTracker(id);
+      const updated = getAllTrackers();
+      setTrackers(updated);
 
-      if (selectedInvestment?.config.id === id) {
-        setSelectedInvestment(updated.length > 0 ? updated[0] : null);
+      if (selectedTracker?.config.id === id) {
+        setSelectedTracker(updated.length > 0 ? updated[0] : null);
       }
     }
   };
@@ -143,11 +143,11 @@ function App() {
     const now = new Date().toLocaleTimeString();
 
     // Check if portfolio tracker exists
-    const existing = getAllInvestments().find(inv => inv.config.id === 'ibkr-portfolio');
+    const existing = getAllTrackers().find(inv => inv.config.id === 'ibkr-portfolio');
 
     if (!existing) {
       // Create new portfolio tracker with default settings
-      const portfolioConfig: InvestmentConfig = {
+      const portfolioConfig: TrackerConfig = {
         id: 'ibkr-portfolio',
         name: '💼 IBKR Total Portfolio',
         startingAmount: summary.netLiquidation,
@@ -160,13 +160,13 @@ function App() {
         lastSyncTimestamp: summary.timestamp,
       };
 
-      createInvestment(portfolioConfig);
+      createTracker(portfolioConfig);
       console.log(`[${now}] Created portfolio tracker with value: $${summary.netLiquidation.toLocaleString()}`);
     } else {
       console.log(`[${now}] Updating portfolio tracker - Current value: $${summary.netLiquidation.toLocaleString()}`);
 
       // Only update the sync timestamp, keep user's configured starting amount
-      updateInvestmentConfig('ibkr-portfolio', {
+      updateTrackerConfig('ibkr-portfolio', {
         lastSyncTimestamp: summary.timestamp,
       });
     }
@@ -176,9 +176,9 @@ function App() {
     updateActualDataPoint('ibkr-portfolio', today, summary.netLiquidation);
     console.log(`[${now}] Updated actual data for ${today}: $${summary.netLiquidation.toLocaleString()}`);
 
-    // Refresh investments list
-    const updated = getAllInvestments();
-    setInvestments(updated);
+    // Refresh trackers list
+    const updated = getAllTrackers();
+    setTrackers(updated);
 
     // Find the portfolio tracker
     const portfolio = updated.find(inv => inv.config.id === 'ibkr-portfolio');
@@ -188,60 +188,67 @@ function App() {
       console.log(`[${now}] Portfolio tracker data for today:`, todayData);
 
       // Auto-select if no selection or if portfolio was already selected
-      if (!selectedInvestment || selectedInvestment.config.id === 'ibkr-portfolio') {
-        setSelectedInvestment(portfolio);
+      if (!selectedTracker || selectedTracker.config.id === 'ibkr-portfolio') {
+        setSelectedTracker(portfolio);
       }
     } else {
       console.error('Portfolio tracker not found after update');
     }
-  }, [selectedInvestment]);
+  }, [selectedTracker]);
 
 
   return (
     <div className="app">
       <header className="app-header">
-        <h1>IBKR Investment Tracing</h1>
+        <h1>IBKR Trade Tracing</h1>
         <IBKRConnection
           onPortfolioUpdate={handlePortfolioUpdate}
         />
       </header>
 
       <TrackerSidebar
-        investments={investments}
-        selectedInvestment={selectedInvestment}
-        onSelectInvestment={setSelectedInvestment}
-        onCreateInvestment={handleCreateInvestment}
-        onDeleteInvestment={handleDeleteInvestment}
+        trackers={trackers}
+        selectedTracker={selectedTracker}
+        onSelectTracker={setSelectedTracker}
+        onCreateTracker={handleCreateTracker}
+        onDeleteTracker={handleDeleteTracker}
         onConfigUpdate={handleConfigUpdate}
       />
 
       <div className="app-content">
-        {investments.length === 0 ? (
+        {trackers.length === 0 ? (
           <div className="empty-state">
-            <h2>No Investment Trackers Yet</h2>
+            <h2>No Trade Trackers Yet</h2>
             <p>Click the menu button in the top left to create your first tracker</p>
           </div>
         ) : (
           <div className="main-content">
-              {selectedInvestment ? (
+              {selectedTracker ? (
                 <>
-                  <SummaryStats investment={selectedInvestment} />
-                  <ProgressChart
-                    investment={selectedInvestment}
-                    dateRange={dateRange || undefined}
-                  />
+                  <SummaryStats tracker={selectedTracker} />
                   <DateRangeSelector
-                    config={selectedInvestment.config}
+                    config={selectedTracker.config}
                     onChange={setDateRange}
-                  />
+                  >
+                    {({ topControls, bottomControls }) => (
+                      <div className="chart-wrapper">
+                        {topControls}
+                        <ProgressChart
+                          tracker={selectedTracker}
+                          dateRange={dateRange || undefined}
+                        />
+                        {bottomControls}
+                      </div>
+                    )}
+                  </DateRangeSelector>
                   <CashFlowManager
-                    investment={selectedInvestment}
+                    tracker={selectedTracker}
                     onAdd={handleAddCashFlow}
                     onDelete={handleDeleteCashFlow}
                   />
-                  {selectedInvestment.config.id !== 'ibkr-portfolio' && (
+                  {selectedTracker.config.id !== 'ibkr-portfolio' && (
                     <ActualAmountUpdater
-                      investment={selectedInvestment}
+                      tracker={selectedTracker}
                       onUpdate={handleUpdateActual}
                       onDelete={handleDeleteActual}
                     />

@@ -50,7 +50,7 @@ Visit http://localhost:5173
 You can use the app without IBKR integration:
 
 1. Click "+" to create a manual tracker
-2. Enter your investment details
+2. Enter your trading details
 3. Track your progress manually
 
 ## With IBKR

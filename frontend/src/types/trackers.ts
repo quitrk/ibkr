@@ -1,4 +1,4 @@
-export interface InvestmentConfig {
+export interface TrackerConfig {
   id: string;
   name: string;
   startingAmount: number;
@@ -25,8 +25,8 @@ export interface CashFlow {
   type: 'deposit' | 'withdrawal';
 }
 
-export interface Investment {
-  config: InvestmentConfig;
+export interface Tracker {
+  config: TrackerConfig;
   actualData: ActualDataPoint[];
   cashFlows?: CashFlow[]; // Optional for backwards compatibility
 }
