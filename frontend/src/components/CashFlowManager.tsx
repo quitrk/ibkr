@@ -14,6 +14,7 @@ export function CashFlowManager({ tracker, onAdd, onDelete }: CashFlowManagerPro
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<'deposit' | 'withdrawal'>('deposit');
+  const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,26 +64,31 @@ export function CashFlowManager({ tracker, onAdd, onDelete }: CashFlowManagerPro
           </div>
 
           <div className="cash-flow-list">
-            <h4>History</h4>
-            <div className="entries">
-              {cashFlows.slice().reverse().map((cf) => (
-                <div key={cf.id} className={`cash-flow-item ${cf.type}`}>
-                  <div className="cash-flow-info">
-                    <span className="cash-flow-date">{format(parseISO(cf.date), 'MMM dd, yyyy')}</span>
-                    <span className={`cash-flow-amount ${cf.type}`}>
-                      {cf.type === 'deposit' ? '+' : '-'}{formatCurrency(Math.abs(cf.amount))}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => handleDelete(cf.id, cf.date)}
-                    className="btn-delete-entry"
-                    title="Delete cash flow"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
+            <div className="history-header" onClick={() => setIsHistoryExpanded(!isHistoryExpanded)}>
+              <span className="collapse-icon">{isHistoryExpanded ? '▼' : '▶'}</span>
+              <h4>History ({cashFlows.length})</h4>
             </div>
+            {isHistoryExpanded && (
+              <div className="entries">
+                {cashFlows.slice().reverse().map((cf) => (
+                  <div key={cf.id} className={`cash-flow-item ${cf.type}`}>
+                    <div className="cash-flow-info">
+                      <span className="cash-flow-date">{format(parseISO(cf.date), 'MMM dd, yyyy')}</span>
+                      <span className={`cash-flow-amount ${cf.type}`}>
+                        {cf.type === 'deposit' ? '+' : '-'}{formatCurrency(Math.abs(cf.amount))}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleDelete(cf.id, cf.date)}
+                      className="btn-delete-entry"
+                      title="Delete cash flow"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </>
       )}

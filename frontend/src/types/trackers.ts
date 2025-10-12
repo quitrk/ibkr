@@ -7,6 +7,7 @@ export interface TrackerConfig {
   startDate: string; // ISO string
   endDate: string; // ISO string
   createdAt: string;
+  depositSchedule?: DepositSchedule; // Optional scheduled deposits
   // IBKR-specific fields
   ibkrSynced?: boolean;
   lastSyncTimestamp?: string;
@@ -23,6 +24,15 @@ export interface CashFlow {
   date: string; // ISO string
   amount: number; // positive for deposits, negative for withdrawals
   type: 'deposit' | 'withdrawal';
+  source?: 'manual' | 'scheduled'; // Track if this was manually added or from a schedule
+}
+
+export interface DepositSchedule {
+  enabled: boolean;
+  frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly';
+  amount: number;
+  startDate?: string; // Optional - defaults to tracker start date
+  endDate?: string; // Optional - defaults to tracker end date
 }
 
 export interface Tracker {

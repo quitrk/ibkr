@@ -59,6 +59,36 @@
   border-bottom: 1px solid var(--border);
 }
 
+.history-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 6px;
+  transition: background 0.2s;
+  user-select: none;
+}
+
+.history-header:hover {
+  background: var(--surface);
+}
+
+.history-header h4 {
+  margin: 0;
+}
+
+.collapse-icon {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.entries {
+  margin-top: 1rem;
+}
+
 .cash-flow-item {
   display: flex;
   justify-content: space-between;
@@ -121,9 +151,10 @@
   align-items: end;
 }
 
-.cash-flow-form select {
+.cash-flow-form select,
+.cash-flow-form input {
   width: 100%;
-  padding: 0.625rem;
+  padding: 0.75rem;
   border: 1px solid var(--border);
   border-radius: 6px;
   font-size: 1rem;

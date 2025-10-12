@@ -1,5 +1,5 @@
-import { addDays, addYears, parseISO, format, isWeekend } from 'date-fns';
-import type { TrackerConfig, ProjectedDataPoint, ActualDataPoint, CashFlow } from '../types/trackers';
+import { addDays, addWeeks, addMonths, addYears, parseISO, format, isWeekend } from 'date-fns';
+import type { TrackerConfig, ProjectedDataPoint, ActualDataPoint, CashFlow, DepositSchedule } from '../types/trackers';
 
 /**
  * Check if a date is a business day (Monday-Friday)
@@ -266,4 +266,52 @@ export function calculateProjection(
   });
 
   return result;
+}
+
+/**
+ * Generate cash flows from a deposit schedule
+ * Returns an array of CashFlow objects based on the schedule configuration
+ */
+export function generateScheduledCashFlows(
+  schedule: DepositSchedule,
+  trackerStartDate: string,
+  trackerEndDate: string
+): CashFlow[] {
+  if (!schedule.enabled || schedule.amount <= 0) {
+    return [];
+  }
+
+  const cashFlows: CashFlow[] = [];
+  const startDate = parseISO(schedule.startDate || trackerStartDate);
+  const endDate = parseISO(schedule.endDate || trackerEndDate);
+
+  let currentDate = startDate;
+
+  while (currentDate <= endDate) {
+    cashFlows.push({
+      id: crypto.randomUUID(),
+      date: format(currentDate, 'yyyy-MM-dd'),
+      amount: schedule.amount,
+      type: 'deposit',
+      source: 'scheduled',
+    });
+
+    // Calculate next deposit date based on frequency
+    switch (schedule.frequency) {
+      case 'daily':
+        currentDate = addDays(currentDate, 1);
+        break;
+      case 'weekly':
+        currentDate = addWeeks(currentDate, 1);
+        break;
+      case 'biweekly':
+        currentDate = addWeeks(currentDate, 2);
+        break;
+      case 'monthly':
+        currentDate = addMonths(currentDate, 1);
+        break;
+    }
+  }
+
+  return cashFlows;
 }

@@ -15,7 +15,6 @@ export function DateRangeSlider({
   fullStartDate,
   totalDays,
   viewStartIndex,
-  viewEndIndex,
   windowSize,
   onSliderChange,
 }: DateRangeSliderProps) {

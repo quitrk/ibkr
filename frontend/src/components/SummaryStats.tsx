@@ -46,6 +46,15 @@ export function SummaryStats({ tracker }: SummaryStatsProps) {
     };
   }, [tracker]);
 
+  // MUST be called before any early returns to follow hooks rules
+  const actualAvgIncrease = useMemo(() => {
+    const result = calculateActualAverageIncrease(
+      tracker.actualData,
+      tracker.config.intervalDays
+    );
+    return result?.intervalPercentage ?? null;
+  }, [tracker.actualData, tracker.config.intervalDays]);
+
   if (!stats) {
     return (
       <div className="summary-stats">
@@ -55,14 +64,6 @@ export function SummaryStats({ tracker }: SummaryStatsProps) {
   }
 
   const isAhead = stats.variance.absolute > 0;
-
-  const actualAvgIncrease = useMemo(() => {
-    const result = calculateActualAverageIncrease(
-      tracker.actualData,
-      tracker.config.intervalDays
-    );
-    return result?.intervalPercentage ?? null;
-  }, [tracker.actualData, tracker.cashFlows, tracker.config.intervalDays]);
 
   return (
     <div className="summary-stats">

@@ -1,4 +1,5 @@
 import type { Tracker, TrackerConfig, ActualDataPoint, CashFlow } from '../types/trackers';
+import { generateScheduledCashFlows } from '../utils/calculations';
 
 const STORAGE_KEY = 'tracker-tracing-data';
 
@@ -45,6 +46,16 @@ export function createTracker(config: TrackerConfig): Tracker {
     actualData: [],
     cashFlows: [],
   };
+
+  // Generate scheduled cash flows if schedule is provided
+  if (config.depositSchedule && config.depositSchedule.enabled) {
+    const scheduledCashFlows = generateScheduledCashFlows(
+      config.depositSchedule,
+      config.startDate,
+      config.endDate
+    );
+    tracker.cashFlows = scheduledCashFlows;
+  }
 
   saveTracker(tracker);
   return tracker;
@@ -110,6 +121,37 @@ export function updateTrackerConfig(trackerId: string, updates: Partial<TrackerC
   }
 
   tracker.config = { ...tracker.config, ...updates };
+  saveTracker(tracker);
+}
+
+export function regenerateScheduledCashFlows(trackerId: string): void {
+  const tracker = getTrackerById(trackerId);
+  if (!tracker) {
+    throw new Error('Tracker not found');
+  }
+
+  // Remove existing scheduled cash flows
+  if (tracker.cashFlows) {
+    tracker.cashFlows = tracker.cashFlows.filter(cf => cf.source !== 'scheduled');
+  } else {
+    tracker.cashFlows = [];
+  }
+
+  // Generate new scheduled cash flows if schedule is enabled
+  if (tracker.config.depositSchedule && tracker.config.depositSchedule.enabled) {
+    const scheduledCashFlows = generateScheduledCashFlows(
+      tracker.config.depositSchedule,
+      tracker.config.startDate,
+      tracker.config.endDate
+    );
+    tracker.cashFlows = [...tracker.cashFlows, ...scheduledCashFlows];
+
+    // Sort by date
+    tracker.cashFlows.sort((a, b) =>
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+  }
+
   saveTracker(tracker);
 }
 

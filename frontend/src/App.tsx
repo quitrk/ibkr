@@ -13,6 +13,7 @@ import {
   updateActualDataPoint,
   deleteActualDataPoint,
   updateTrackerConfig,
+  regenerateScheduledCashFlows,
   deleteTracker,
   addCashFlow,
   deleteCashFlow,
@@ -101,25 +102,20 @@ function App() {
     }
   };
 
-  const handleConfigUpdate = useCallback((trackerId: string, name: string, startingAmount: number, projectedIncreasePercent: number, intervalDays: number, startDate: string, endDate: string) => {
+  const handleConfigUpdate = useCallback((trackerId: string, config: TrackerConfig) => {
     // Update the config using storage API
-    updateTrackerConfig(trackerId, {
-      name,
-      startingAmount,
-      projectedIncreasePercent,
-      intervalDays,
-      startDate,
-      endDate,
-    });
+    updateTrackerConfig(trackerId, config);
 
-    // Refresh UI and reset date range
+    // Regenerate scheduled cash flows based on new config
+    regenerateScheduledCashFlows(trackerId);
+
+    // Refresh UI
     const updated = getAllTrackers();
     setTrackers(updated);
     const refreshed = updated.find(inv => inv.config.id === trackerId);
     if (refreshed && selectedTracker?.config.id === trackerId) {
       setSelectedTracker(refreshed);
-      // Reset date range so DateRangeSelector recalculates
-      setDateRange(null);
+      // DateRangeSelector will handle resetting its view based on config changes
     }
   }, [selectedTracker]);
 

@@ -1,6 +1,5 @@
-import { useState } from 'react';
-import { TrackerForm } from './TrackerForm';
-import { TrackerConfigEditor } from './TrackerConfigEditor';
+import { useState, useEffect, useCallback } from 'react';
+import { TrackerFormEditor } from './TrackerFormEditor';
 import type { Tracker, TrackerConfig } from '../types/trackers';
 import './TrackerSidebar.css';
 
@@ -10,7 +9,7 @@ interface TrackerSidebarProps {
   onSelectTracker: (tracker: Tracker) => void;
   onCreateTracker: (config: TrackerConfig) => void;
   onDeleteTracker: (id: string) => void;
-  onConfigUpdate: (trackerId: string, name: string, startingAmount: number, projectedIncreasePercent: number, intervalDays: number, startDate: string, endDate: string) => void;
+  onConfigUpdate: (trackerId: string, config: TrackerConfig) => void;
 }
 
 export function TrackerSidebar({
@@ -24,46 +23,86 @@ export function TrackerSidebar({
   const [isOpen, setIsOpen] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [configuringId, setConfiguringId] = useState<string | null>(null);
+  const [sidebarWidth, setSidebarWidth] = useState(480);
+  const [isResizing, setIsResizing] = useState(false);
+  const [tempWidth, setTempWidth] = useState<number | null>(null);
 
   const handleCreateTracker = (config: TrackerConfig) => {
     onCreateTracker(config);
     setShowForm(false);
   };
 
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const currentWidth = isOpen ? sidebarWidth : 40;
+    setTempWidth(currentWidth); // Start from current displayed width
+    setIsResizing(true);
+    if (!isOpen) {
+      setIsOpen(true); // Open sidebar if closed when starting resize
+    }
+    e.preventDefault();
+  };
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isResizing) return;
+    requestAnimationFrame(() => {
+      const newWidth = Math.max(40, Math.min(e.clientX, 800)); // Min 40px, max 800px
+      setTempWidth(newWidth);
+    });
+  }, [isResizing]);
+
+  const handleMouseUp = useCallback(() => {
+    if (isResizing) {
+      if (tempWidth !== null) {
+        setSidebarWidth(tempWidth);
+      }
+      setIsResizing(false);
+      setTempWidth(null);
+    }
+  }, [isResizing, tempWidth]);
+
+
+  // Add/remove mouse event listeners
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isResizing, handleMouseMove, handleMouseUp]);
+
   return (
     <>
-      {/* Toggle Button */}
-      <button
-        className="sidebar-toggle"
-        onClick={() => setIsOpen(!isOpen)}
-        title="Toggle trackers"
-      >
-        {isOpen ? '✕' : '☰'}
-      </button>
-
-      {/* Overlay */}
-      {isOpen && <div className="sidebar-overlay" onClick={() => setIsOpen(false)} />}
-
       {/* Sidebar */}
-      <div className={`tracker-sidebar ${isOpen ? 'open' : ''}`}>
+      <div
+        className={`tracker-sidebar ${isOpen ? 'open' : ''} ${isResizing ? 'resizing' : ''}`}
+        style={{
+          width: (isResizing && tempWidth !== null) ? `${tempWidth}px` : (isOpen ? `${sidebarWidth}px` : '40px'),
+          '--sidebar-width': (isResizing && tempWidth !== null) ? `${tempWidth}px` : (isOpen ? `${sidebarWidth}px` : '40px')
+        } as React.CSSProperties}
+      >
+        {/* Toggle Button */}
+        <button
+          className="sidebar-toggle"
+          onClick={() => setIsOpen(!isOpen)}
+          title="Toggle trackers"
+        >
+          ☰
+        </button>
+
+        {/* Resize Handle - Always visible */}
+        <div
+          className="sidebar-resize-handle"
+          onMouseDown={handleMouseDown}
+        />
+
+        {isOpen && (
+          <>
         <div className="sidebar-header">
           <h3>Your Trackers</h3>
-          <div className="header-actions">
-            <button
-              onClick={() => setShowForm(!showForm)}
-              className="btn-secondary"
-              title={showForm ? 'Cancel' : 'Add new tracker'}
-            >
-              {showForm ? '✕' : '+'}
-            </button>
-          </div>
         </div>
-
-        {showForm && (
-          <div className="form-container">
-            <TrackerForm onSubmit={handleCreateTracker} />
-          </div>
-        )}
 
         <div className="tracker-list">
           {trackers
@@ -124,17 +163,10 @@ export function TrackerSidebar({
                   </div>
                 </div>
                 {configuringId === tracker.config.id && (
-                  <TrackerConfigEditor
-                    currentConfig={{
-                      name: tracker.config.name,
-                      startingAmount: tracker.config.startingAmount,
-                      projectedIncreasePercent: tracker.config.projectedIncreasePercent,
-                      intervalDays: tracker.config.intervalDays,
-                      startDate: tracker.config.startDate,
-                      endDate: tracker.config.endDate,
-                    }}
-                    onSave={(name, startingAmount, projectedIncreasePercent, intervalDays, startDate, endDate) => {
-                      onConfigUpdate(tracker.config.id, name, startingAmount, projectedIncreasePercent, intervalDays, startDate, endDate);
+                  <TrackerFormEditor
+                    existingTracker={tracker}
+                    onSave={(config) => {
+                      onConfigUpdate(tracker.config.id, config);
                       setConfiguringId(null);
                     }}
                     onCancel={() => setConfiguringId(null)}
@@ -144,6 +176,21 @@ export function TrackerSidebar({
               </div>
             ))}
         </div>
+
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="add-tracker-btn"
+        >
+          {showForm ? 'Cancel' : '+ Add New Tracker'}
+        </button>
+
+        {showForm && (
+          <div className="form-container">
+            <TrackerFormEditor onSave={handleCreateTracker} />
+          </div>
+        )}
+          </>
+        )}
       </div>
     </>
   );
