@@ -33,14 +33,17 @@ export function SummaryStats({ tracker }: SummaryStatsProps) {
       return null;
     }
 
+    const cashFlows = tracker.cashFlows || [];
     const variance = calculateVariance(
       matchingProjected.amount,
-      latestActual.amount
+      latestActual.amount,
+      latestActual.date,
+      cashFlows
     );
 
     return {
       latestActual: latestActual.amount,
-      latestProjected: matchingProjected.amount,
+      latestProjected: variance.projectedWithCashFlows,
       variance,
       date: latestActual.date,
     };
@@ -48,12 +51,14 @@ export function SummaryStats({ tracker }: SummaryStatsProps) {
 
   // MUST be called before any early returns to follow hooks rules
   const actualAvgIncrease = useMemo(() => {
+    const cashFlows = tracker.cashFlows || [];
     const result = calculateActualAverageIncrease(
       tracker.actualData,
-      tracker.config.intervalDays
+      tracker.config.intervalDays,
+      cashFlows
     );
     return result?.intervalPercentage ?? null;
-  }, [tracker.actualData, tracker.config.intervalDays]);
+  }, [tracker.actualData, tracker.config.intervalDays, tracker.cashFlows]);
 
   if (!stats) {
     return (

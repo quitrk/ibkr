@@ -144,17 +144,39 @@ export function calculateProjectedValues(
 
 /**
  * Calculate variance between projected and actual values
+ * When cash flows are provided, adjusts the projected value to account for them
+ * This gives a true comparison of investment performance vs expectations
  */
-export function calculateVariance(projected: number, actual: number): {
+export function calculateVariance(
+  projected: number,
+  actual: number,
+  date: string,
+  cashFlows?: CashFlow[]
+): {
   absolute: number;
   percentage: number;
+  projectedWithCashFlows: number;
 } {
-  const absolute = actual - projected;
-  const percentage = projected > 0 ? (absolute / projected) * 100 : 0;
+  let projectedWithCashFlows = projected;
+
+  // If we have cash flows, adjust the projected value to account for them
+  if (cashFlows && cashFlows.length > 0) {
+    const targetDate = parseISO(date);
+    const cumulativeCashFlow = cashFlows
+      .filter(cf => parseISO(cf.date) <= targetDate)
+      .reduce((sum, cf) => sum + (cf.type === 'deposit' ? cf.amount : -cf.amount), 0);
+
+    // The projected value should include cash flows to be comparable with actual
+    projectedWithCashFlows = projected + cumulativeCashFlow;
+  }
+
+  const absolute = actual - projectedWithCashFlows;
+  const percentage = projectedWithCashFlows > 0 ? (absolute / projectedWithCashFlows) * 100 : 0;
 
   return {
     absolute,
     percentage,
+    projectedWithCashFlows,
   };
 }
 
@@ -192,11 +214,13 @@ export function formatPercentage(value: number): string {
 /**
  * Calculate actual average increase percentage from actual data
  * Returns percentage per interval period
- * Note: Actual data points should NOT include cash flows (deposits/withdrawals)
+ * For IBKR data: accounts for cash flows using Time-Weighted Return
+ * For manual data: simple growth calculation (cash flows already excluded)
  */
 export function calculateActualAverageIncrease(
   actualData: ActualDataPoint[],
-  intervalDays: number
+  intervalDays: number,
+  cashFlows?: CashFlow[]
 ): { dailyRate: number; intervalPercentage: number } | null {
   if (actualData.length < 2) return null;
 
@@ -209,16 +233,94 @@ export function calculateActualAverageIncrease(
 
   if (firstValue <= 0) return null;
 
-  // Calculate actual percentage increase
-  // Actual data excludes cash flows, so we calculate growth directly
-  const totalIncreasePercent = ((lastValue - firstValue) / firstValue) * 100;
+  // If no cash flows, use simple calculation
+  if (!cashFlows || cashFlows.length === 0) {
+    const totalIncreasePercent = ((lastValue - firstValue) / firstValue) * 100;
+    const totalDays = countBusinessDays(parseISO(sorted[0].date), parseISO(sorted[sorted.length - 1].date));
+    const dailyRate = totalDays > 0 ? Math.pow(1 + totalIncreasePercent / 100, 1 / totalDays) - 1 : 0;
+    const intervalPercentage = (Math.pow(1 + dailyRate, intervalDays) - 1) * 100;
+    return { dailyRate, intervalPercentage };
+  }
 
-  // Calculate daily compound rate by spreading the total increase over the interval period
-  // This gives us: (1 + dailyRate)^intervalDays = (1 + totalIncreasePercent/100)
-  const dailyRate = Math.pow(1 + totalIncreasePercent / 100, 1 / intervalDays) - 1;
+  // Time-Weighted Return: Calculate return for each period between cash flows
+  const sortedCashFlows = [...cashFlows].sort((a, b) =>
+    new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
 
-  // Return the actual total increase percentage as the interval percentage
-  return { dailyRate, intervalPercentage: totalIncreasePercent };
+  // Build segments: [start, cashflow1, cashflow2, ..., end]
+  const segments: { startDate: Date; endDate: Date; startValue: number; endValue: number }[] = [];
+
+  let segmentStartDate = parseISO(sorted[0].date);
+  let segmentStartValue = sorted[0].amount;
+
+  for (const cf of sortedCashFlows) {
+    const cfDate = parseISO(cf.date);
+
+    // Skip cash flows outside our data range
+    if (cfDate <= segmentStartDate || cfDate > parseISO(sorted[sorted.length - 1].date)) {
+      continue;
+    }
+
+    // Find the value just before or at the cash flow date
+    const valueAtOrBeforeCF = sorted
+      .filter(d => parseISO(d.date) <= cfDate)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+
+    if (valueAtOrBeforeCF && parseISO(valueAtOrBeforeCF.date) > segmentStartDate) {
+      const cfAmount = cf.type === 'deposit' ? cf.amount : -cf.amount;
+
+      // Key fix: If the data point is exactly at the cash flow date,
+      // the value INCLUDES the cash flow already, so we need to subtract it
+      // to get the true "before cash flow" value for the segment end
+      const isExactlyAtCashFlow = format(parseISO(valueAtOrBeforeCF.date), 'yyyy-MM-dd') === format(cfDate, 'yyyy-MM-dd');
+      const endValueBeforeCashFlow = isExactlyAtCashFlow
+        ? valueAtOrBeforeCF.amount - cfAmount  // Remove the cash flow to get pre-CF value
+        : valueAtOrBeforeCF.amount;            // Already before CF
+
+      segments.push({
+        startDate: segmentStartDate,
+        endDate: parseISO(valueAtOrBeforeCF.date),
+        startValue: segmentStartValue,
+        endValue: endValueBeforeCashFlow,
+      });
+
+      // The next segment starts after the cash flow, with the actual recorded value
+      segmentStartDate = cfDate;
+      segmentStartValue = valueAtOrBeforeCF.amount; // This already includes the cash flow
+    }
+  }
+
+  // Add final segment
+  segments.push({
+    startDate: segmentStartDate,
+    endDate: parseISO(sorted[sorted.length - 1].date),
+    startValue: segmentStartValue,
+    endValue: sorted[sorted.length - 1].amount,
+  });
+
+  // Calculate compound return across all segments
+  let cumulativeReturn = 1.0;
+  let totalBusinessDays = 0;
+
+  for (const segment of segments) {
+    if (segment.startValue <= 0) continue;
+
+    const segmentReturn = segment.endValue / segment.startValue;
+    cumulativeReturn *= segmentReturn;
+
+    const businessDays = countBusinessDays(segment.startDate, segment.endDate);
+    totalBusinessDays += businessDays;
+  }
+
+  if (totalBusinessDays === 0) return null;
+
+  // Convert cumulative return to daily rate
+  const dailyRate = Math.pow(cumulativeReturn, 1 / totalBusinessDays) - 1;
+
+  // Calculate what the return would be over the interval period
+  const intervalPercentage = (Math.pow(1 + dailyRate, intervalDays) - 1) * 100;
+
+  return { dailyRate, intervalPercentage };
 }
 
 /**
@@ -285,7 +387,24 @@ export function generateScheduledCashFlows(
   const startDate = parseISO(schedule.startDate || trackerStartDate);
   const endDate = parseISO(schedule.endDate || trackerEndDate);
 
-  let currentDate = startDate;
+  // Start one interval period after the base start date
+  let currentDate: Date;
+  switch (schedule.frequency) {
+    case 'daily':
+      currentDate = addDays(startDate, 1);
+      break;
+    case 'weekly':
+      currentDate = addWeeks(startDate, 1);
+      break;
+    case 'biweekly':
+      currentDate = addWeeks(startDate, 2);
+      break;
+    case 'monthly':
+      currentDate = addMonths(startDate, 1);
+      break;
+    default:
+      currentDate = startDate;
+  }
 
   while (currentDate <= endDate) {
     cashFlows.push({

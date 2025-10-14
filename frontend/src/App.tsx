@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { ProgressChart } from './components/ProgressChart';
 import { ActualAmountUpdater } from './components/ActualAmountUpdater';
 import { CashFlowManager } from './components/CashFlowManager';
@@ -24,6 +24,14 @@ function App() {
   const [trackers, setTrackers] = useState<Tracker[]>([]);
   const [selectedTracker, setSelectedTracker] = useState<Tracker | null>(null);
   const [dateRange, setDateRange] = useState<DateRange | null>(null);
+
+  // Use ref to track the currently selected tracker to avoid stale closures
+  const selectedTrackerRef = useRef<Tracker | null>(null);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    selectedTrackerRef.current = selectedTracker;
+  }, [selectedTracker]);
 
   // Load trackers from localStorage on mount
   useEffect(() => {
@@ -183,14 +191,21 @@ function App() {
       const todayData = portfolio.actualData.find(d => d.date === today);
       console.log(`[${now}] Portfolio tracker data for today:`, todayData);
 
-      // Auto-select if no selection or if portfolio was already selected
-      if (!selectedTracker || selectedTracker.config.id === 'ibkr-portfolio') {
+      // Use ref to get current selection to avoid stale closure
+      const currentlySelected = selectedTrackerRef.current;
+
+      // Only auto-select portfolio if no tracker is currently selected
+      if (!currentlySelected) {
+        setSelectedTracker(portfolio);
+      } else if (currentlySelected.config.id === 'ibkr-portfolio') {
+        // If IBKR tracker is already selected, update it with fresh data
         setSelectedTracker(portfolio);
       }
+      // Otherwise, don't switch - just update data in background
     } else {
       console.error('Portfolio tracker not found after update');
     }
-  }, [selectedTracker]);
+  }, []); // No dependencies - use ref instead
 
 
   return (

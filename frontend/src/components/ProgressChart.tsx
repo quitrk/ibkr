@@ -12,6 +12,7 @@ import {
   TimeScale,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
+import zoomPlugin from 'chartjs-plugin-zoom';
 import { parseISO, differenceInDays } from 'date-fns';
 import 'chartjs-adapter-date-fns';
 import type { Tracker, DateRange } from '../types/trackers';
@@ -27,7 +28,8 @@ ChartJS.register(
   Tooltip,
   Legend,
   Filler,
-  TimeScale
+  TimeScale,
+  zoomPlugin
 );
 
 interface ProgressChartProps {
@@ -113,14 +115,6 @@ export function ProgressChart({ tracker, dateRange }: ProgressChartProps) {
     // Convert interval percentage to daily compound rate
     const projectedGrowthRatePerDay = Math.pow(1 + projectedIncreasePercent, 1 / intervalDays) - 1;
 
-    // Helper to get cumulative cash flows up to a date
-    const getCumulativeCashFlow = (date: string): number => {
-      const targetDate = parseISO(date);
-      return cashFlows
-        .filter(cf => parseISO(cf.date) <= targetDate)
-        .reduce((sum, cf) => sum + (cf.type === 'deposit' ? cf.amount : -cf.amount), 0);
-    };
-
     // Filter actual data by date range if provided
     let filteredActualData = actualData;
     if (dateRange) {
@@ -132,9 +126,14 @@ export function ProgressChart({ tracker, dateRange }: ProgressChartProps) {
       });
     }
 
-    // Create a map of actual values by date (tracker + cash flows)
+    // Create a map of actual values by date
+    // IMPORTANT: For both IBKR and manual data, the 'amount' already includes deposits/withdrawals
+    // Users enter the total portfolio value, not just investment gains
     const actualMap = new Map(
-      filteredActualData.map(point => [point.date, point.amount + getCumulativeCashFlow(point.date)])
+      filteredActualData.map(point => {
+        // Both IBKR and manual amounts already include deposits, so don't add cash flows
+        return [point.date, point.amount];
+      })
     );
 
     // Create a combined set of dates: sampled projected dates + all actual data dates
@@ -156,7 +155,12 @@ export function ProgressChart({ tracker, dateRange }: ProgressChartProps) {
 
     // Use ALL actual data for growth rate calculation, not just filtered
     // This ensures we have enough data points for a meaningful calculation
-    const actualGrowthRate = calculateActualAverageIncrease(actualData, intervalDays);
+    // Pass cash flows for both IBKR and manual trackers to get accurate time-weighted return
+    const actualGrowthRate = calculateActualAverageIncrease(
+      actualData,
+      intervalDays,
+      cashFlows
+    );
 
     if (actualGrowthRate && actualData.length > 0) {
       // Use ALL actual data to find the absolute last actual value
@@ -172,11 +176,15 @@ export function ProgressChart({ tracker, dateRange }: ProgressChartProps) {
       // Use FULL projected data, then we'll filter when displaying
       const futureFullData = fullProjectedData.filter(p => parseISO(p.date) >= parseISO(lastActualDate));
 
+      // For actual-based projection, only include FUTURE cash flows
+      // lastValue already includes all past cash flows (for both IBKR and manual)
+      const futureCashFlows = cashFlows.filter(cf => parseISO(cf.date) > parseISO(lastActualDate));
+
       const fullActualProjectionMap = calculateProjection(
         futureFullData,
         lastValue, // Starting from the last actual tracker value
         actualGrowthRatePerDay,
-        cashFlows
+        futureCashFlows
       );
 
       // Copy only the dates we need for display (sampled)
@@ -185,11 +193,13 @@ export function ProgressChart({ tracker, dateRange }: ProgressChartProps) {
 
     // Calculate projected values with cash flows
     // First calculate for ALL data to get accurate values
+    // For IBKR: Projection should include cash flows to show "what you planned"
+    // For Manual: Also include cash flows
     const fullProjectedWithCashFlowsMap = calculateProjection(
       fullProjectedData,
       tracker.config.startingAmount,
       projectedGrowthRatePerDay,
-      cashFlows
+      cashFlows // Always include cash flows in projection
     );
 
     // If we have a date range, we need to use values from the full projection
@@ -244,13 +254,13 @@ export function ProgressChart({ tracker, dateRange }: ProgressChartProps) {
           pointRadius: actualPointRadius,
           pointHoverRadius: actualPointRadius + 2,
           tension: 0.1,
-          spanGaps: false, // Don't connect gaps in actual data
+          spanGaps: true, // Connect across gaps to show continuous value
         },
         {
           label: 'Actual-Based Projection',
           data: actualBasedProjection,
-          borderColor: 'rgb(168, 85, 247)',
-          backgroundColor: 'rgba(168, 85, 247, 0.1)',
+          borderColor: 'rgb(34, 197, 94)', // Same green as Actual
+          backgroundColor: 'rgba(34, 197, 94, 0.1)',
           borderWidth: 2,
           borderDash: [5, 5], // Dotted line
           pointRadius: Math.max(pointRadius - 1, 0),
@@ -305,6 +315,29 @@ export function ProgressChart({ tracker, dateRange }: ProgressChartProps) {
         legend: {
           position: 'top' as const,
         },
+        zoom: {
+          zoom: {
+            drag: {
+              enabled: true,
+              backgroundColor: 'rgba(59, 130, 246, 0.2)',
+              borderColor: 'rgba(59, 130, 246, 0.8)',
+              borderWidth: 1,
+            },
+            mode: 'xy' as const,
+            onZoomComplete: () => {
+              // Optional: callback after zoom
+            },
+          },
+          pan: {
+            enabled: true,
+            mode: 'xy' as const,
+            modifierKey: 'shift' as const, // Hold shift to pan
+          },
+          limits: {
+            x: { min: 'original' as const, max: 'original' as const },
+            y: { min: 'original' as const, max: 'original' as const },
+          },
+        },
         tooltip: {
           callbacks: {
             label: function (context: any) {
@@ -319,6 +352,31 @@ export function ProgressChart({ tracker, dateRange }: ProgressChartProps) {
                 }).format(context.parsed.y);
               }
               return label;
+            },
+            afterBody: function (tooltipItems: any[]) {
+              // Find actual and projected values for this date
+              const dataIndex = tooltipItems[0].dataIndex;
+              const datasets = tooltipItems[0].chart.data.datasets;
+
+              const actualValue = datasets[1]?.data[dataIndex]; // Actual dataset
+              const projectedValue = datasets[0]?.data[dataIndex]; // Projected dataset
+
+              const lines: string[] = [];
+
+              // If we have both actual and projected, show comparison
+              if (actualValue != null && projectedValue != null) {
+                const difference = actualValue - projectedValue;
+                const percentDiff = ((difference / projectedValue) * 100).toFixed(2);
+
+                lines.push(''); // Empty line for spacing
+                lines.push(`Difference: ${new Intl.NumberFormat('en-US', {
+                  style: 'currency',
+                  currency: 'USD',
+                  signDisplay: 'always'
+                }).format(difference)} (${percentDiff}%)`);
+              }
+
+              return lines;
             },
           },
         },

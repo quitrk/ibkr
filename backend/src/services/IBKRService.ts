@@ -39,6 +39,11 @@ export class IBKRService extends EventEmitter {
         const timestamp = new Date().toISOString();
         console.log(`[IBKRService ${timestamp}] Connected to IBKR TWS/Gateway with clientId: ${this.config.clientId}`);
         this.isConnected = true;
+
+        // Subscribe to account updates to start receiving portfolio and account value events
+        console.log('[IBKRService] Subscribing to account updates...');
+        this.api!.reqAccountUpdates(true, '');
+
         resolve();
       });
 
@@ -150,6 +155,10 @@ export class IBKRService extends EventEmitter {
 
   async disconnect(): Promise<void> {
     if (this.api && this.isConnected) {
+      // Unsubscribe from account updates before disconnecting
+      console.log('[IBKRService] Unsubscribing from account updates...');
+      this.api.reqAccountUpdates(false, '');
+
       this.api.disconnect();
       this.isConnected = false;
       this.positions = [];
