@@ -1,9 +1,21 @@
+export interface ProjectionConfig {
+  id: string;
+  name?: string;
+  increasePercent: number;
+  intervalDays: number;
+  visible: boolean;
+}
+
+export interface InstrumentConfig {
+  id: string;
+  symbol: string; // Stock ticker symbol (e.g., AAPL, TSLA)
+}
+
 export interface TrackerConfig {
   id: string;
   name: string;
   startingAmount: number;
-  projectedIncreasePercent: number;
-  intervalDays: number;
+  projections: ProjectionConfig[];
   startDate: string; // ISO string
   endDate: string; // ISO string
   createdAt: string;
@@ -11,6 +23,8 @@ export interface TrackerConfig {
   // IBKR-specific fields
   ibkrSynced?: boolean;
   lastSyncTimestamp?: string;
+  // Instrument tracking - portfolio is always 100% allocated across these instruments
+  instruments?: InstrumentConfig[];
 }
 
 export interface ActualDataPoint {

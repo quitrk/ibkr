@@ -17,6 +17,7 @@ import { parseISO, differenceInDays } from 'date-fns';
 import 'chartjs-adapter-date-fns';
 import type { Tracker, DateRange } from '../types/trackers';
 import { calculateProjectedValues, calculateActualAverageIncrease, calculateProjection } from '../utils/calculations';
+import { useAppContext } from '../contexts/AppContext';
 import './ProgressChart.css';
 
 ChartJS.register(
@@ -62,15 +63,24 @@ function sampleDataPoints<T extends { date: string }>(
 }
 
 export function ProgressChart({ tracker, dateRange }: ProgressChartProps) {
-  const chartData = useMemo(() => {
-    // Calculate full projected data (without cash flows first)
-    const fullProjectedData = calculateProjectedValues(
-      tracker.config,
-      parseISO(tracker.config.endDate)
-    );
+  // Get instrument performance from context
+  const { instrumentPerformance } = useAppContext();
 
-    // Filter by date range if provided
-    let projectedData = fullProjectedData;
+  const chartData = useMemo(() => {
+    const visibleProjections = tracker.config.projections?.filter(p => p.visible) || [];
+
+    // Calculate full projected data for each visible projection
+    const allProjectionData = visibleProjections.map(projection => ({
+      projection,
+      fullData: calculateProjectedValues(
+        projection,
+        tracker.config.startDate,
+        tracker.config.startingAmount,
+        tracker.config.endDate
+      )
+    }));
+
+    // Calculate date range
     let rangeDays = differenceInDays(
       parseISO(tracker.config.endDate),
       parseISO(tracker.config.startDate)
@@ -80,21 +90,12 @@ export function ProgressChart({ tracker, dateRange }: ProgressChartProps) {
       const rangeStart = parseISO(dateRange.startDate);
       const rangeEnd = parseISO(dateRange.endDate);
       rangeDays = differenceInDays(rangeEnd, rangeStart);
-
-      projectedData = fullProjectedData.filter(point => {
-        const pointDate = parseISO(point.date);
-        return pointDate >= rangeStart && pointDate <= rangeEnd;
-      });
     }
 
     // Determine max data points based on range duration
-    // < 30 days: show all points
-    // 30-90 days: max 50 points (every ~2 days)
-    // 90-180 days: max 40 points (every ~4 days)
-    // > 180 days: max 30 points (weekly+)
     let maxDataPoints: number;
     if (rangeDays < 30) {
-      maxDataPoints = projectedData.length; // Show all
+      maxDataPoints = 1000; // Show all
     } else if (rangeDays < 90) {
       maxDataPoints = 50;
     } else if (rangeDays < 180) {
@@ -103,17 +104,31 @@ export function ProgressChart({ tracker, dateRange }: ProgressChartProps) {
       maxDataPoints = 30;
     }
 
-    // Sample the projected data to reduce clutter
-    const sampledProjectedData = sampleDataPoints(projectedData, maxDataPoints);
+    // Filter and sample each projection's data
+    const processedProjections = allProjectionData.map(({ projection, fullData }) => {
+      let projectedData = fullData;
+
+      if (dateRange) {
+        const rangeStart = parseISO(dateRange.startDate);
+        const rangeEnd = parseISO(dateRange.endDate);
+        projectedData = fullData.filter(point => {
+          const pointDate = parseISO(point.date);
+          return pointDate >= rangeStart && pointDate <= rangeEnd;
+        });
+      }
+
+      return {
+        projection,
+        fullData,
+        sampledData: sampleDataPoints(projectedData, maxDataPoints)
+      };
+    });
 
     const actualData = tracker.actualData;
     const cashFlows = tracker.cashFlows || [];
 
-    // Calculate projected growth rate per business day (compound)
-    const projectedIncreasePercent = tracker.config.projectedIncreasePercent / 100;
-    const intervalDays = tracker.config.intervalDays;
-    // Convert interval percentage to daily compound rate
-    const projectedGrowthRatePerDay = Math.pow(1 + projectedIncreasePercent, 1 / intervalDays) - 1;
+    // Use first projection's interval for actual growth rate calculation, or default to 30 days
+    const intervalDays = tracker.config.projections?.[0]?.intervalDays || 30;
 
     // Filter actual data by date range if provided
     let filteredActualData = actualData;
@@ -136,19 +151,17 @@ export function ProgressChart({ tracker, dateRange }: ProgressChartProps) {
       })
     );
 
-    // Create a combined set of dates: sampled projected dates + all actual data dates
-    const dateSet = new Set([
-      ...sampledProjectedData.map(p => p.date),
-      ...filteredActualData.map(a => a.date),
-    ]);
+    // Create a combined set of dates from all projections + actual data
+    const dateSet = new Set<string>();
+    processedProjections.forEach(({ sampledData }) => {
+      sampledData.forEach(p => dateSet.add(p.date));
+    });
+    filteredActualData.forEach(a => dateSet.add(a.date));
 
     // Convert to sorted array
     const allDates = Array.from(dateSet).sort((a, b) =>
       parseISO(a).getTime() - parseISO(b).getTime()
     );
-
-    // Build a map of projected data for quick lookup (use full data for accurate values)
-    const projectedMap = new Map(fullProjectedData.map(p => [p.date, p.amount]));
 
     // Calculate actual-based projection
     let actualProjectionMap = new Map<string, number>();
@@ -173,8 +186,9 @@ export function ProgressChart({ tracker, dateRange }: ProgressChartProps) {
       const actualGrowthRatePerDay = actualGrowthRate.dailyRate;
 
       // Project from last actual point forward using daily compounding
-      // Use FULL projected data, then we'll filter when displaying
-      const futureFullData = fullProjectedData.filter(p => parseISO(p.date) >= parseISO(lastActualDate));
+      // Use first projection's full data as baseline, or generate a simple date range
+      const baseFullData = processedProjections[0]?.fullData || [];
+      const futureFullData = baseFullData.filter(p => parseISO(p.date) >= parseISO(lastActualDate));
 
       // For actual-based projection, only include FUTURE cash flows
       // lastValue already includes all past cash flows (for both IBKR and manual)
@@ -191,30 +205,31 @@ export function ProgressChart({ tracker, dateRange }: ProgressChartProps) {
       actualProjectionMap = fullActualProjectionMap;
     }
 
-    // Calculate projected values with cash flows
-    // First calculate for ALL data to get accurate values
-    // For IBKR: Projection should include cash flows to show "what you planned"
-    // For Manual: Also include cash flows
-    const fullProjectedWithCashFlowsMap = calculateProjection(
-      fullProjectedData,
-      tracker.config.startingAmount,
-      projectedGrowthRatePerDay,
-      cashFlows // Always include cash flows in projection
-    );
+    // Calculate projected values with cash flows for each projection
+    const projectionsWithCashFlows = processedProjections.map(({ projection, fullData }) => {
+      const projectedIncreasePercent = projection.increasePercent / 100;
+      const projectionIntervalDays = projection.intervalDays;
+      const projectedGrowthRatePerDay = Math.pow(1 + projectedIncreasePercent, 1 / projectionIntervalDays) - 1;
 
-    // If we have a date range, we need to use values from the full projection
-    // Otherwise filtered dates will start from the original starting amount incorrectly
-    const projectedWithCashFlowsMap = fullProjectedWithCashFlowsMap;
+      const projectionMap = calculateProjection(
+        fullData,
+        tracker.config.startingAmount,
+        projectedGrowthRatePerDay,
+        cashFlows
+      );
+
+      return {
+        projection,
+        dataMap: projectionMap
+      };
+    });
 
     // Build chart data using combined dates
-    // Use Date objects for time scale
-    const labels = allDates.map(date => parseISO(date));
-
-    const projected = allDates.map(date => {
-      const value = projectedWithCashFlowsMap.get(date);
-      if (value !== undefined) return value;
-      // If we don't have this exact date in projected, return null
-      return projectedMap.has(date) ? projectedMap.get(date)! : null;
+    // Use Date objects at noon local time to avoid timezone shifts
+    const labels = allDates.map(date => {
+      const [year, month, day] = date.split('-').map(Number);
+      // Create date at noon local time to prevent timezone date shifts
+      return new Date(year, month - 1, day, 12, 0, 0, 0);
     });
 
     // For actual data, only show values where we have actual data
@@ -232,19 +247,67 @@ export function ProgressChart({ tracker, dateRange }: ProgressChartProps) {
     const pointRadius = allDates.length > 60 ? 0 : allDates.length > 40 ? 2 : 4;
     const actualPointRadius = Math.max(pointRadius, 3); // Actual points slightly larger
 
+    // Color palette for projections
+    const projectionColors = [
+      { border: 'rgb(59, 130, 246)', bg: 'rgba(59, 130, 246, 0.1)' }, // Blue
+      { border: 'rgb(168, 85, 247)', bg: 'rgba(168, 85, 247, 0.1)' }, // Purple
+      { border: 'rgb(236, 72, 153)', bg: 'rgba(236, 72, 153, 0.1)' }, // Pink
+      { border: 'rgb(251, 146, 60)', bg: 'rgba(251, 146, 60, 0.1)' }, // Orange
+      { border: 'rgb(34, 211, 238)', bg: 'rgba(34, 211, 238, 0.1)' }, // Cyan
+    ];
+
+    // Instrument colors (different palette)
+    const instrumentColors = [
+      { border: 'rgb(220, 38, 38)', bg: 'rgba(220, 38, 38, 0.1)' }, // Red
+      { border: 'rgb(217, 119, 6)', bg: 'rgba(217, 119, 6, 0.1)' }, // Amber
+      { border: 'rgb(21, 128, 61)', bg: 'rgba(21, 128, 61, 0.1)' }, // Green
+      { border: 'rgb(107, 114, 128)', bg: 'rgba(107, 114, 128, 0.1)' }, // Gray
+      { border: 'rgb(139, 92, 246)', bg: 'rgba(139, 92, 246, 0.1)' }, // Violet
+    ];
+
+    // Build datasets: one for each projection
+    const projectionDatasets = projectionsWithCashFlows.map(({ projection, dataMap }, index) => {
+      const colors = projectionColors[index % projectionColors.length];
+      const data = allDates.map(date => dataMap.get(date) ?? null);
+
+      return {
+        label: projection.name || `Projection ${index + 1}`,
+        data,
+        borderColor: colors.border,
+        backgroundColor: colors.bg,
+        borderWidth: 2,
+        pointRadius,
+        pointHoverRadius: pointRadius + 2,
+        tension: 0.1,
+      };
+    });
+
+    // Build datasets for instruments
+    const instrumentDatasets = Array.from(instrumentPerformance.entries()).map(([id, perf], index) => {
+      const colors = instrumentColors[index % instrumentColors.length];
+      const data = allDates.map(date => perf.valueMap.get(date) ?? null);
+
+      return {
+        label: perf.symbol,
+        data,
+        borderColor: colors.border,
+        backgroundColor: colors.bg,
+        borderWidth: 2,
+        borderDash: [3, 3], // Dashed line to differentiate from projections
+        pointRadius: Math.max(pointRadius - 1, 0),
+        pointHoverRadius: pointRadius + 1,
+        tension: 0.1,
+        spanGaps: true,
+        // Store price map in metadata for tooltip access
+        priceMap: perf.priceMap,
+      };
+    });
+
     return {
       labels,
       datasets: [
-        {
-          label: 'Projected',
-          data: projected,
-          borderColor: 'rgb(59, 130, 246)',
-          backgroundColor: 'rgba(59, 130, 246, 0.1)',
-          borderWidth: 2,
-          pointRadius,
-          pointHoverRadius: pointRadius + 2,
-          tension: 0.1,
-        },
+        ...projectionDatasets,
+        ...instrumentDatasets,
         {
           label: 'Actual',
           data: actual,
@@ -270,7 +333,7 @@ export function ProgressChart({ tracker, dateRange }: ProgressChartProps) {
         },
       ],
     };
-  }, [tracker, dateRange]);
+  }, [tracker, dateRange, instrumentPerformance]);
 
   const options = useMemo(() => {
     // Calculate the date range for x-axis configuration
@@ -350,30 +413,103 @@ export function ProgressChart({ tracker, dateRange }: ProgressChartProps) {
                   style: 'currency',
                   currency: 'USD',
                 }).format(context.parsed.y);
+
+                // If this is an instrument dataset, show price per share
+                if (context.dataset.priceMap) {
+                  const dataIndex = context.dataIndex;
+                  const date = context.chart.data.labels[dataIndex];
+                  // Format date as YYYY-MM-DD in local timezone
+                  const year = date.getFullYear();
+                  const month = String(date.getMonth() + 1).padStart(2, '0');
+                  const day = String(date.getDate()).padStart(2, '0');
+                  const dateStr = `${year}-${month}-${day}`;
+                  const price = context.dataset.priceMap.get(dateStr);
+                  if (price !== undefined) {
+                    label += ` (${new Intl.NumberFormat('en-US', {
+                      style: 'currency',
+                      currency: 'USD',
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }).format(price)}/share)`;
+                  }
+                }
               }
               return label;
             },
             afterBody: function (tooltipItems: any[]) {
-              // Find actual and projected values for this date
               const dataIndex = tooltipItems[0].dataIndex;
               const datasets = tooltipItems[0].chart.data.datasets;
-
-              const actualValue = datasets[1]?.data[dataIndex]; // Actual dataset
-              const projectedValue = datasets[0]?.data[dataIndex]; // Projected dataset
+              const hoveredLabel = tooltipItems[0].dataset.label;
+              const date = tooltipItems[0].chart.data.labels[dataIndex];
+              // Format date as YYYY-MM-DD in local timezone
+              const year = date.getFullYear();
+              const month = String(date.getMonth() + 1).padStart(2, '0');
+              const day = String(date.getDate()).padStart(2, '0');
+              const dateStr = `${year}-${month}-${day}`;
 
               const lines: string[] = [];
 
-              // If we have both actual and projected, show comparison
-              if (actualValue != null && projectedValue != null) {
-                const difference = actualValue - projectedValue;
-                const percentDiff = ((difference / projectedValue) * 100).toFixed(2);
+              // Only show comparisons when hovering over Actual
+              if (hoveredLabel !== 'Actual') {
+                return lines;
+              }
 
-                lines.push(''); // Empty line for spacing
-                lines.push(`Difference: ${new Intl.NumberFormat('en-US', {
-                  style: 'currency',
-                  currency: 'USD',
-                  signDisplay: 'always'
-                }).format(difference)} (${percentDiff}%)`);
+              // Find actual value
+              const actualDataset = datasets.find((d: any) => d.label === 'Actual');
+              const actualValue = actualDataset?.data[dataIndex];
+
+              // Compare actual with projections and instruments
+              if (actualValue != null) {
+                const comparisonDatasets = datasets.filter((d: any) =>
+                  d.label !== 'Actual' && d.label !== 'Actual-Based Projection'
+                );
+
+                if (comparisonDatasets.length > 0) {
+                  lines.push(''); // Empty line for spacing
+
+                  // Calculate differences and sort by difference ascending
+                  const comparisons = comparisonDatasets
+                    .map((dataset: any) => {
+                      const value = dataset.data[dataIndex];
+                      if (value != null) {
+                        const difference = actualValue - value;
+                        const percentDiff = ((difference / value) * 100).toFixed(2);
+
+                        let line = `vs ${dataset.label}: ${new Intl.NumberFormat('en-US', {
+                          style: 'currency',
+                          currency: 'USD',
+                          signDisplay: 'always'
+                        }).format(difference)} (${percentDiff}%)`;
+
+                        // If this is an instrument, add price per share
+                        if (dataset.priceMap) {
+                          const price = dataset.priceMap.get(dateStr);
+                          if (price !== undefined) {
+                            line += ` @ ${new Intl.NumberFormat('en-US', {
+                              style: 'currency',
+                              currency: 'USD',
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            }).format(price)}/share`;
+                          }
+                        }
+
+                        return {
+                          label: dataset.label,
+                          difference,
+                          percentDiff,
+                          line
+                        };
+                      }
+                      return null;
+                    })
+                    .filter((c: any) => c !== null)
+                    .sort((a: any, b: any) => a.difference - b.difference); // Sort by difference ascending
+
+                  comparisons.forEach((comp: any) => {
+                    lines.push(comp.line);
+                  });
+                }
               }
 
               return lines;

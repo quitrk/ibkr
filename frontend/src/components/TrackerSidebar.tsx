@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { TrackerFormEditor } from './TrackerFormEditor';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { TrackerEditDialog } from './TrackerEditDialog';
 import type { Tracker, TrackerConfig } from '../types/trackers';
 import './TrackerSidebar.css';
 
@@ -21,16 +21,12 @@ export function TrackerSidebar({
   onConfigUpdate,
 }: TrackerSidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const [configuringId, setConfiguringId] = useState<string | null>(null);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [editingTracker, setEditingTracker] = useState<Tracker | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState(480);
   const [isResizing, setIsResizing] = useState(false);
   const [tempWidth, setTempWidth] = useState<number | null>(null);
-
-  const handleCreateTracker = (config: TrackerConfig) => {
-    onCreateTracker(config);
-    setShowForm(false);
-  };
+  const sidebarRef = useRef<HTMLDivElement>(null);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     const currentWidth = isOpen ? sidebarWidth : 40;
@@ -73,10 +69,48 @@ export function TrackerSidebar({
     }
   }, [isResizing, handleMouseMove, handleMouseUp]);
 
+  // Close sidebar when clicking outside
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (sidebarRef.current && !sidebarRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
   return (
     <>
+      <TrackerEditDialog
+        isOpen={showCreateDialog}
+        onSave={(config) => {
+          onCreateTracker(config);
+          setShowCreateDialog(false);
+        }}
+        onCancel={() => setShowCreateDialog(false)}
+      />
+
+      <TrackerEditDialog
+        isOpen={editingTracker !== null}
+        tracker={editingTracker}
+        onSave={(config) => {
+          if (editingTracker) {
+            onConfigUpdate(editingTracker.config.id, config);
+            setEditingTracker(null);
+          }
+        }}
+        onCancel={() => setEditingTracker(null)}
+      />
+
       {/* Sidebar */}
       <div
+        ref={sidebarRef}
         className={`tracker-sidebar ${isOpen ? 'open' : ''} ${isResizing ? 'resizing' : ''}`}
         style={{
           width: (isResizing && tempWidth !== null) ? `${tempWidth}px` : (isOpen ? `${sidebarWidth}px` : '40px'),
@@ -135,15 +169,20 @@ export function TrackerSidebar({
                       )}
                     </div>
                     <div className="tracker-meta">
-                      {tracker.config.projectedIncreasePercent}% every{' '}
-                      {tracker.config.intervalDays} days
+                      {tracker.config.projections && tracker.config.projections.length === 1 ? (
+                        `${tracker.config.projections[0].increasePercent}% every ${tracker.config.projections[0].intervalDays} days`
+                      ) : tracker.config.projections && tracker.config.projections.length > 1 ? (
+                        `${tracker.config.projections.length} projection scenarios`
+                      ) : (
+                        'No projections configured'
+                      )}
                     </div>
                   </div>
                   <div className="tracker-actions">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setConfiguringId(configuringId === tracker.config.id ? null : tracker.config.id);
+                        setEditingTracker(tracker);
                       }}
                       className="btn-icon"
                       title="Configure tracker"
@@ -162,33 +201,16 @@ export function TrackerSidebar({
                     </button>
                   </div>
                 </div>
-                {configuringId === tracker.config.id && (
-                  <TrackerFormEditor
-                    existingTracker={tracker}
-                    onSave={(config) => {
-                      onConfigUpdate(tracker.config.id, config);
-                      setConfiguringId(null);
-                    }}
-                    onCancel={() => setConfiguringId(null)}
-                    isOpen={true}
-                  />
-                )}
               </div>
             ))}
         </div>
 
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => setShowCreateDialog(true)}
           className="add-tracker-btn"
         >
-          {showForm ? 'Cancel' : '+ Add New Tracker'}
+          + Add New Tracker
         </button>
-
-        {showForm && (
-          <div className="form-container">
-            <TrackerFormEditor onSave={handleCreateTracker} />
-          </div>
-        )}
           </>
         )}
       </div>

@@ -213,3 +213,4 @@ export function clearAllData(): void {
     console.error('Error clearing localStorage:', error);
   }
 }
+

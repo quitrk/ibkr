@@ -6,7 +6,7 @@ import { SummaryStats } from './components/SummaryStats';
 import { DateRangeSelector } from './components/DateRangeSelector';
 import { IBKRConnection } from './components/IBKRConnection';
 import { TrackerSidebar } from './components/TrackerSidebar';
-import type { Tracker, TrackerConfig, DateRange, CashFlow } from './types/trackers';
+import type { TrackerConfig, DateRange, CashFlow } from './types/trackers';
 import {
   getAllTrackers,
   createTracker,
@@ -18,15 +18,15 @@ import {
   addCashFlow,
   deleteCashFlow,
 } from './api/storage';
+import { useAppContext } from './contexts/AppContext';
 import './App.css';
 
 function App() {
-  const [trackers, setTrackers] = useState<Tracker[]>([]);
-  const [selectedTracker, setSelectedTracker] = useState<Tracker | null>(null);
+  const { trackers, setTrackers, selectedTracker, setSelectedTracker } = useAppContext();
   const [dateRange, setDateRange] = useState<DateRange | null>(null);
 
   // Use ref to track the currently selected tracker to avoid stale closures
-  const selectedTrackerRef = useRef<Tracker | null>(null);
+  const selectedTrackerRef = useRef(selectedTracker);
 
   // Keep ref in sync with state
   useEffect(() => {
@@ -140,6 +140,7 @@ function App() {
   };
 
 
+
   const handlePortfolioUpdate = useCallback((summary: any) => {
     console.log('Portfolio update received:', summary);
 
@@ -155,8 +156,7 @@ function App() {
         id: 'ibkr-portfolio',
         name: '💼 IBKR Total Portfolio',
         startingAmount: summary.netLiquidation,
-        projectedIncreasePercent: 0.5, // Default 0.5% growth
-        intervalDays: 30,
+        projections: [],
         startDate: today,
         endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         createdAt: new Date().toISOString(),

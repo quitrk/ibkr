@@ -1,5 +1,5 @@
-import { addDays, addWeeks, addMonths, addYears, parseISO, format, isWeekend } from 'date-fns';
-import type { TrackerConfig, ProjectedDataPoint, ActualDataPoint, CashFlow, DepositSchedule } from '../types/trackers';
+import { addDays, addWeeks, addMonths, parseISO, format, isWeekend } from 'date-fns';
+import type { ProjectedDataPoint, ActualDataPoint, CashFlow, DepositSchedule, ProjectionConfig } from '../types/trackers';
 
 /**
  * Check if a date is a business day (Monday-Friday)
@@ -44,45 +44,46 @@ export function countBusinessDays(startDate: Date, endDate: Date): number {
 }
 
 /**
- * Calculate projected tracker values based on configuration
+ * Calculate projected tracker values based on projection configuration
  * Now uses business days for intervals and generates daily data points
  */
 export function calculateProjectedValues(
-  config: TrackerConfig,
-  endDate?: Date
+  projection: ProjectionConfig,
+  startDate: string,
+  startingAmount: number,
+  endDate: string
 ): ProjectedDataPoint[] {
-  const startDate = parseISO(config.startDate);
-  // Default to 1 year from start date if no end date provided
-  const end = endDate || addYears(startDate, 1);
+  const start = parseISO(startDate);
+  const end = parseISO(endDate);
 
   const projectedData: ProjectedDataPoint[] = [];
 
   // Calculate growth milestones (when growth actually happens)
   const milestones: { date: Date; amount: number; businessDayNumber: number }[] = [];
-  let currentAmount = config.startingAmount;
+  let currentAmount = startingAmount;
   let businessDaysElapsed = 0;
 
   // Add starting milestone
   milestones.push({
-    date: startDate,
+    date: start,
     amount: currentAmount,
     businessDayNumber: 0,
   });
 
   // Calculate milestones at each interval of business days
-  let milestoneDate = startDate;
+  let milestoneDate = start;
   while (milestoneDate < end) {
     // Add the configured interval in business days
-    milestoneDate = addBusinessDays(milestoneDate, config.intervalDays);
+    milestoneDate = addBusinessDays(milestoneDate, projection.intervalDays);
 
     if (milestoneDate > end) {
       break;
     }
 
-    businessDaysElapsed += config.intervalDays;
+    businessDaysElapsed += projection.intervalDays;
 
     // Apply percentage increase
-    currentAmount = currentAmount * (1 + config.projectedIncreasePercent / 100);
+    currentAmount = currentAmount * (1 + projection.increasePercent / 100);
 
     milestones.push({
       date: milestoneDate,
@@ -92,7 +93,7 @@ export function calculateProjectedValues(
   }
 
   // Now generate daily data points with interpolation between milestones
-  let currentDate = new Date(startDate);
+  let currentDate = new Date(start);
   let dayNumber = 0;
 
   while (currentDate <= end) {

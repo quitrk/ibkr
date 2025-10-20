@@ -1,0 +1,79 @@
+[
+  {
+    "config": {
+      "id": "ibkr-portfolio",
+      "name": "IBKR",
+      "startingAmount": 41462,
+      "projectedIncreasePercent": 1,
+      "intervalDays": 3,
+      "startDate": "2025-10-09",
+      "endDate": "2029-12-10",
+      "createdAt": "2025-10-10T10:14:49.222Z",
+      "ibkrSynced": true,
+      "lastSyncTimestamp": "2025-10-17T12:21:37.853Z",
+      "projections": [
+        {
+          "id": "13ceba4c-1040-46f8-a846-6df8d72298d2",
+          "name": "Conservative",
+          "increasePercent": 1,
+          "intervalDays": 3,
+          "visible": true
+        },
+        {
+          "id": "55f4f69b-46ea-4e1c-9ee4-abb2611e3c17",
+          "name": "Agressive",
+          "increasePercent": 1,
+          "intervalDays": 2,
+          "visible": true
+        },
+        {
+          "id": "917ae070-4155-4f0a-85c3-477ea07decf8",
+          "name": "Turtle",
+          "increasePercent": 1,
+          "intervalDays": 5,
+          "visible": true
+        }
+      ]
+    },
+    "actualData": [
+      {
+        "date": "2025-10-09",
+        "amount": 41462,
+        "source": "manual"
+      },
+      {
+        "date": "2025-10-10",
+        "amount": 41990.63,
+        "source": "manual"
+      },
+      {
+        "date": "2025-10-13",
+        "amount": 41791.92,
+        "source": "manual"
+      },
+      {
+        "date": "2025-10-14",
+        "amount": 44598.44,
+        "source": "manual"
+      },
+      {
+        "date": "2025-10-15",
+        "amount": 44538.29,
+        "source": "manual"
+      },
+      {
+        "date": "2025-10-16",
+        "amount": 43875.92,
+        "source": "manual"
+      }
+    ],
+    "cashFlows": [
+      {
+        "date": "2025-10-14",
+        "amount": 1000,
+        "type": "deposit",
+        "id": "ddc3c01d-75f8-41e4-a2b7-e47aef86cc41"
+      }
+    ]
+  }
+]

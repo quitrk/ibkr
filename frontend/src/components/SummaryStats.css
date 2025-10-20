@@ -6,9 +6,38 @@
   box-shadow: 0 2px 8px var(--shadow);
 }
 
-.summary-stats h3 {
+.stats-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 1.5rem;
+}
+
+.summary-stats h3 {
+  margin: 0;
   font-size: 1.25rem;
+}
+
+.projection-selector-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.projection-selector-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.projection-selector {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  cursor: pointer;
 }
 
 .summary-stats .no-data {
