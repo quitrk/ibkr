@@ -1,9 +1,7 @@
 /* Actual Amount Updater */
 .actual-amount-updater {
-  background: var(--background);
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px var(--shadow);
+  background: var(--surface);
+  padding: 1.25rem;
 }
 
 .actual-amount-updater h3 {
@@ -88,27 +86,10 @@
   border-color: var(--danger-color);
 }
 
-/* Form Row */
-.actual-amount-updater .form-row {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-}
-
-.actual-amount-updater .form-row .form-group {
-  flex: 1;
-}
-
-.actual-amount-updater .form-row button {
-  margin-top: 1.5rem; /* Align with inputs since labels take space */
-}
+/* Form uses global .form-row styles from App.css */
 
 /* Mobile */
 @media (max-width: 768px) {
-  .actual-amount-updater {
-    padding: 1rem;
-  }
-
   .actual-amount-updater .form-row {
     flex-direction: column;
     align-items: stretch;

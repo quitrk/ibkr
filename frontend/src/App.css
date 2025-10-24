@@ -29,13 +29,48 @@
   padding: 0.5rem 1.5rem;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 2rem;
   z-index: 999;
 }
 
 .app-header h1 {
   font-size: 1.25rem;
   margin: 0;
+  font-weight: 600;
+  flex: 1;
+}
+
+.header-nav {
+  display: flex;
+  gap: 1.5rem;
+  margin-right: 1rem;
+}
+
+.nav-link {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.95rem;
+  padding: 0;
+  transition: color 0.2s;
+  font-weight: 500;
+  border-radius: 0;
+  outline: none;
+}
+
+.nav-link:hover {
+  color: var(--text-primary);
+}
+
+.nav-link:focus,
+.nav-link:active {
+  outline: none;
+  box-shadow: none;
+}
+
+.nav-link.active {
+  color: var(--primary-color, #3b82f6);
   font-weight: 600;
 }
 
@@ -60,11 +95,20 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
   width: 100%;
-  max-width: 1600px;
-  margin: 0 auto;
 }
+
+/* Dashboard view wrapper for consistent background and padding */
+.dashboard-view {
+  padding: 2rem;
+  background: var(--background);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Old view navigation tabs - removed, now using header nav */
 
 .empty-state {
   background: var(--background);
@@ -142,6 +186,57 @@ button {
   background: rgba(255, 255, 255, 0.1);
   color: var(--text-primary);
 }
+
+/* Global Form Styles */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: var(--text-secondary, #b0b0b0);
+}
+
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="email"],
+input[type="password"],
+select,
+textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 1rem;
+  background: var(--background);
+  color: var(--text-primary);
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+  align-items: end;
+}
+
+.form-row .form-group {
+  flex: 1;
+  margin-bottom: 0;
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
   .app-content {

@@ -1,0 +1,32 @@
+.comparison-selector-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.comparison-selector-group label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.comparison-selector {
+  padding: 0.5rem 0.75rem;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.comparison-selector:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.comparison-selector:hover {
+  border-color: var(--text-secondary);
+}

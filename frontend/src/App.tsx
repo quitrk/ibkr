@@ -6,6 +6,7 @@ import { SummaryStats } from './components/SummaryStats';
 import { DateRangeSelector } from './components/DateRangeSelector';
 import { IBKRConnection } from './components/IBKRConnection';
 import { TrackerSidebar } from './components/TrackerSidebar';
+import { PerformanceAnalytics } from './components/PerformanceAnalytics';
 import type { TrackerConfig, DateRange, CashFlow } from './types/trackers';
 import {
   getAllTrackers,
@@ -23,9 +24,12 @@ import { ToastProvider, useToast } from './contexts/ToastContext';
 import { ToastDuration } from './components/Toast';
 import './App.css';
 
+type ViewType = 'dashboard' | 'analytics';
+
 function AppContent() {
   const { trackers, setTrackers, selectedTracker, setSelectedTracker } = useAppContext();
   const [dateRange, setDateRange] = useState<DateRange | null>(null);
+  const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   const { showSuccess } = useToast();
 
   // Use ref to track the currently selected tracker to avoid stale closures
@@ -148,7 +152,6 @@ function AppContent() {
   };
 
 
-
   const handlePortfolioUpdate = useCallback((summary: any) => {
     console.log('Portfolio update received:', summary);
 
@@ -220,6 +223,20 @@ function AppContent() {
     <div className="app">
       <header className="app-header">
         <h1>IBKR Trade Tracing</h1>
+        <div className="header-nav">
+          <button
+            className={`nav-link ${currentView === 'dashboard' ? 'active' : ''}`}
+            onClick={() => setCurrentView('dashboard')}
+          >
+            Dashboard
+          </button>
+          <button
+            className={`nav-link ${currentView === 'analytics' ? 'active' : ''}`}
+            onClick={() => setCurrentView('analytics')}
+          >
+            Analytics
+          </button>
+        </div>
         <IBKRConnection
           onPortfolioUpdate={handlePortfolioUpdate}
         />
@@ -242,41 +259,58 @@ function AppContent() {
           </div>
         ) : (
           <div className="main-content">
-              {selectedTracker ? (
-                <>
-                  <SummaryStats tracker={selectedTracker} />
-                  <DateRangeSelector
-                    config={selectedTracker.config}
-                    onChange={setDateRange}
-                  >
-                    {({ topControls, bottomControls }) => (
-                      <div className="chart-wrapper">
-                        {topControls}
-                        <ProgressChart
+              {currentView === 'dashboard' ? (
+                <div className="dashboard-view">
+                  {selectedTracker ? (
+                    <>
+                      <SummaryStats tracker={selectedTracker} />
+                      <DateRangeSelector
+                        config={selectedTracker.config}
+                        onChange={setDateRange}
+                      >
+                        {({ topControls, bottomControls }) => (
+                          <div className="chart-wrapper">
+                            {topControls}
+                            <ProgressChart
+                              tracker={selectedTracker}
+                              dateRange={dateRange || undefined}
+                            />
+                            {bottomControls}
+                          </div>
+                        )}
+                      </DateRangeSelector>
+                      <CashFlowManager
+                        tracker={selectedTracker}
+                        onAdd={handleAddCashFlow}
+                        onDelete={handleDeleteCashFlow}
+                      />
+                      {selectedTracker.config.id !== 'ibkr-portfolio' && (
+                        <ActualAmountUpdater
                           tracker={selectedTracker}
-                          dateRange={dateRange || undefined}
+                          onUpdate={handleUpdateActual}
+                          onDelete={handleDeleteActual}
                         />
-                        {bottomControls}
-                      </div>
-                    )}
-                  </DateRangeSelector>
-                  <CashFlowManager
-                    tracker={selectedTracker}
-                    onAdd={handleAddCashFlow}
-                    onDelete={handleDeleteCashFlow}
-                  />
-                  {selectedTracker.config.id !== 'ibkr-portfolio' && (
-                    <ActualAmountUpdater
+                      )}
+                    </>
+                  ) : (
+                    <div className="empty-state">
+                      <p>Select a tracker from the menu</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <>
+                  {selectedTracker ? (
+                    <PerformanceAnalytics
                       tracker={selectedTracker}
-                      onUpdate={handleUpdateActual}
-                      onDelete={handleDeleteActual}
+                      dateRange={dateRange || undefined}
                     />
+                  ) : (
+                    <div className="empty-state">
+                      <p>Select a tracker to view analytics</p>
+                    </div>
                   )}
                 </>
-              ) : (
-                <div className="empty-state">
-                  <p>Select a tracker from the menu</p>
-                </div>
               )}
           </div>
         )}

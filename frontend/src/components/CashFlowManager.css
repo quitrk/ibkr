@@ -1,9 +1,7 @@
 /* Cash Flow Manager */
 .cash-flow-manager {
-  background: var(--background);
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px var(--shadow);
+  background: var(--surface);
+  padding: 1.25rem;
 }
 
 .cash-flow-manager h3 {
@@ -151,29 +149,8 @@
   align-items: end;
 }
 
-.cash-flow-form select,
-.cash-flow-form input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 1rem;
-  background: var(--background);
-  color: var(--text-primary);
-  transition: border-color 0.2s;
-}
-
-.cash-flow-form select:focus {
-  outline: none;
-  border-color: var(--primary-color);
-}
-
 /* Mobile */
 @media (max-width: 768px) {
-  .cash-flow-manager {
-    padding: 1rem;
-  }
-
   .cash-flow-form .form-row {
     grid-template-columns: 1fr;
   }

@@ -9,13 +9,13 @@ import {
   calculateActualAverageIncrease,
 } from '../utils/calculations';
 import { useAppContext } from '../contexts/AppContext';
+import { ComparisonSelector, type ComparisonType } from './ComparisonSelector';
+import './StatCard.css';
 import './SummaryStats.css';
 
 interface SummaryStatsProps {
   tracker: Tracker;
 }
-
-type ComparisonType = 'projection' | 'instrument';
 
 export function SummaryStats({ tracker }: SummaryStatsProps) {
   const { instrumentPerformance } = useAppContext();
@@ -126,12 +126,6 @@ export function SummaryStats({ tracker }: SummaryStatsProps) {
     return result?.intervalPercentage ?? null;
   }, [tracker.actualData, tracker.config.projections, tracker.cashFlows, selectedType, selectedId]);
 
-  const hasProjections = visibleProjections.length > 0;
-  const hasInstruments = visibleInstruments.length > 0;
-  const hasMultipleOptions = (hasProjections && hasInstruments) ||
-    (hasProjections && visibleProjections.length > 1) ||
-    (hasInstruments && visibleInstruments.length > 1);
-
   if (!stats) {
     return (
       <div className="summary-stats">
@@ -146,43 +140,15 @@ export function SummaryStats({ tracker }: SummaryStatsProps) {
     <div className="summary-stats">
       <div className="stats-header">
         <h3>Current Performance</h3>
-        {hasMultipleOptions && (
-          <div className="projection-selector-group">
-            <label htmlFor="comparison-select">Compare to</label>
-            <select
-              id="comparison-select"
-              value={`${selectedType}:${selectedId}`}
-              onChange={(e) => {
-                const [type, id] = e.target.value.split(':');
-                setSelectedType(type as ComparisonType);
-                setSelectedId(id);
-              }}
-              className="projection-selector"
-            >
-              {hasProjections && (
-                <optgroup label="Projections">
-                  {visibleProjections.map((projection, index) => (
-                    <option key={projection.id} value={`projection:${projection.id}`}>
-                      {projection.name || `Projection ${index + 1}`}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-              {hasInstruments && (
-                <optgroup label="Instruments">
-                  {visibleInstruments.map((instrument) => {
-                    const perfData = instrumentPerformance.get(instrument.id);
-                    return (
-                      <option key={instrument.id} value={`instrument:${instrument.id}`}>
-                        {perfData?.symbol || instrument.symbol}
-                      </option>
-                    );
-                  })}
-                </optgroup>
-              )}
-            </select>
-          </div>
-        )}
+        <ComparisonSelector
+          tracker={tracker}
+          selectedType={selectedType}
+          selectedId={selectedId}
+          onSelectionChange={(type, id) => {
+            setSelectedType(type);
+            setSelectedId(id);
+          }}
+        />
       </div>
       <div className="stats-grid">
         <div className="stat-card stat-card-combined">
