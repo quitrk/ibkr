@@ -49,6 +49,12 @@ export function ProjectionsList({ projections, onChange }: ProjectionsListProps)
     onChange(projections.filter(p => p.id !== id));
   };
 
+  const handleToggleVisibility = (id: string) => {
+    onChange(projections.map(p =>
+      p.id === id ? { ...p, visible: !p.visible } : p
+    ));
+  };
+
   return (
     <div className="projections-container">
       <div className="projections-header">
@@ -80,6 +86,14 @@ export function ProjectionsList({ projections, onChange }: ProjectionsListProps)
               </span>
             </div>
             <div className="projection-actions">
+              <button
+                type="button"
+                onClick={() => handleToggleVisibility(projection.id)}
+                className="btn-icon"
+                title={projection.visible ? 'Hide projection' : 'Show projection'}
+              >
+                {projection.visible ? '✓' : '✕'}
+              </button>
               <button
                 type="button"
                 onClick={() => handleEditClick(projection)}

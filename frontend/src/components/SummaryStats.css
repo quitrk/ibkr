@@ -91,13 +91,15 @@
 
 .stat-value.positive,
 .stat-percentage.positive,
-.stat-status.positive {
+.stat-status.positive,
+.stat-note.positive {
   color: var(--success-color);
 }
 
 .stat-value.negative,
 .stat-percentage.negative,
-.stat-status.negative {
+.stat-status.negative,
+.stat-note.negative {
   color: var(--danger-color);
 }
 

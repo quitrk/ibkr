@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import type { Tracker, CashFlow } from '../types/trackers';
 import { formatCurrency } from '../utils/calculations';
+import { useToast } from '../contexts/ToastContext';
+import { ToastDuration } from './Toast';
 import './CashFlowManager.css';
 
 interface CashFlowManagerProps {
@@ -15,12 +17,13 @@ export function CashFlowManager({ tracker, onAdd, onDelete }: CashFlowManagerPro
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<'deposit' | 'withdrawal'>('deposit');
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
+  const { showError, showSuccess } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!amount || parseFloat(amount) <= 0) {
-      alert('Please enter a valid amount');
+      showError('Please enter a valid amount', ToastDuration.Short);
       return;
     }
 
@@ -30,6 +33,7 @@ export function CashFlowManager({ tracker, onAdd, onDelete }: CashFlowManagerPro
       type,
     });
 
+    showSuccess(`${type === 'deposit' ? 'Deposit' : 'Withdrawal'} added successfully`, ToastDuration.Short);
     // Reset form
     setAmount('');
   };
@@ -37,6 +41,7 @@ export function CashFlowManager({ tracker, onAdd, onDelete }: CashFlowManagerPro
   const handleDelete = (cashFlowId: string, cashFlowDate: string) => {
     if (confirm(`Are you sure you want to delete the cash flow from ${format(parseISO(cashFlowDate), 'MMM dd, yyyy')}?`)) {
       onDelete(cashFlowId);
+      showSuccess('Cash flow deleted successfully', ToastDuration.Short);
     }
   };
 

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef, useEffect } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -65,6 +65,19 @@ function sampleDataPoints<T extends { date: string }>(
 export function ProgressChart({ tracker, dateRange }: ProgressChartProps) {
   // Get instrument performance from context
   const { instrumentPerformance } = useAppContext();
+
+  // Store chart reference and zoom state (only x-axis, let y auto-scale)
+  const chartRef = useRef<ChartJS<'line'>>(null);
+  const savedZoomState = useRef<{ x: { min: number; max: number } } | null>(null);
+
+  // Reset zoom when date range changes (user clicked a quick selection button)
+  useEffect(() => {
+    savedZoomState.current = null;
+    const chart = chartRef.current;
+    if (chart) {
+      chart.resetZoom();
+    }
+  }, [dateRange]);
 
   const chartData = useMemo(() => {
     const visibleProjections = tracker.config.projections?.filter(p => p.visible) || [];
@@ -282,26 +295,29 @@ export function ProgressChart({ tracker, dateRange }: ProgressChartProps) {
       };
     });
 
-    // Build datasets for instruments
-    const instrumentDatasets = Array.from(instrumentPerformance.entries()).map(([id, perf], index) => {
-      const colors = instrumentColors[index % instrumentColors.length];
-      const data = allDates.map(date => perf.valueMap.get(date) ?? null);
+    // Build datasets for visible instruments only
+    const visibleInstruments = tracker.config.instruments?.filter(inst => inst.visible) || [];
+    const instrumentDatasets = Array.from(instrumentPerformance.entries())
+      .filter(([id, _perf]) => visibleInstruments.some(inst => inst.id === id))
+      .map(([_id, perf], index) => {
+        const colors = instrumentColors[index % instrumentColors.length];
+        const data = allDates.map(date => perf.valueMap.get(date) ?? null);
 
-      return {
-        label: perf.symbol,
-        data,
-        borderColor: colors.border,
-        backgroundColor: colors.bg,
-        borderWidth: 2,
-        borderDash: [3, 3], // Dashed line to differentiate from projections
-        pointRadius: Math.max(pointRadius - 1, 0),
-        pointHoverRadius: pointRadius + 1,
-        tension: 0.1,
-        spanGaps: true,
-        // Store price map in metadata for tooltip access
-        priceMap: perf.priceMap,
-      };
-    });
+        return {
+          label: perf.symbol,
+          data,
+          borderColor: colors.border,
+          backgroundColor: colors.bg,
+          borderWidth: 2,
+          borderDash: [3, 3], // Dashed line to differentiate from projections
+          pointRadius: Math.max(pointRadius - 1, 0),
+          pointHoverRadius: pointRadius + 1,
+          tension: 0.1,
+          spanGaps: true,
+          // Store price map in metadata for tooltip access
+          priceMap: perf.priceMap,
+        };
+      });
 
     return {
       labels,
@@ -371,9 +387,7 @@ export function ProgressChart({ tracker, dateRange }: ProgressChartProps) {
     return {
       responsive: true,
       maintainAspectRatio: false,
-      animation: {
-        duration: 100, // Ultra-fast animations
-      },
+      animation: false as const, // Disable animations to prevent flickering on data updates
       plugins: {
         legend: {
           position: 'top' as const,
@@ -387,14 +401,31 @@ export function ProgressChart({ tracker, dateRange }: ProgressChartProps) {
               borderWidth: 1,
             },
             mode: 'xy' as const,
-            onZoomComplete: () => {
-              // Optional: callback after zoom
+            onZoomComplete: ({ chart }: any) => {
+              // Save x-axis zoom state (let y-axis auto-scale for new data)
+              if (chart && chart.scales) {
+                savedZoomState.current = {
+                  x: { min: chart.scales.x.min, max: chart.scales.x.max },
+                };
+              }
+            },
+            onZoomRejected: () => {
+              // User tried to zoom out beyond limits - clear saved state
+              savedZoomState.current = null;
             },
           },
           pan: {
             enabled: true,
             mode: 'xy' as const,
             modifierKey: 'shift' as const, // Hold shift to pan
+            onPanComplete: ({ chart }: any) => {
+              // Save x-axis zoom state when user pans (let y-axis auto-scale)
+              if (chart && chart.scales) {
+                savedZoomState.current = {
+                  x: { min: chart.scales.x.min, max: chart.scales.x.max },
+                };
+              }
+            },
           },
           limits: {
             x: { min: 'original' as const, max: 'original' as const },
@@ -546,9 +577,29 @@ export function ProgressChart({ tracker, dateRange }: ProgressChartProps) {
     };
   }, [tracker, dateRange]);
 
+  // Restore x-axis zoom after chart updates (y-axis auto-scales)
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (chart && savedZoomState.current) {
+      const { x } = savedZoomState.current;
+      // Restore x-axis zoom without animation to prevent flickering
+      // Y-axis will auto-scale to fit all data including new instruments
+      chart.zoomScale('x', { min: x.min, max: x.max }, 'none');
+    }
+  }, [chartData]);
+
+  // Handle double-click to reset zoom
+  const handleDoubleClick = () => {
+    const chart = chartRef.current;
+    if (chart) {
+      chart.resetZoom();
+      savedZoomState.current = null;
+    }
+  };
+
   return (
-    <div className="chart-container">
-      <Line data={chartData} options={options} />
+    <div className="chart-container" onDoubleClick={handleDoubleClick}>
+      <Line ref={chartRef} data={chartData} options={options} />
     </div>
   );
 }

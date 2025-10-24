@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import type { ProjectionConfig } from '../types/trackers';
 import { Dialog } from './Dialog';
+import { useToast } from '../contexts/ToastContext';
+import { ToastDuration } from './Toast';
 
 interface ProjectionDialogProps {
   isOpen: boolean;
@@ -19,6 +21,7 @@ export function ProjectionDialog({
   const [increasePercent, setIncreasePercent] = useState('');
   const [intervalDays, setIntervalDays] = useState('');
   const [visible, setVisible] = useState(true);
+  const { showError } = useToast();
 
   // Reset form when dialog opens or projection changes
   useEffect(() => {
@@ -35,7 +38,7 @@ export function ProjectionDialog({
     const days = parseInt(intervalDays, 10);
 
     if (isNaN(increase) || isNaN(days) || days < 1) {
-      alert('Please enter valid values');
+      showError('Please enter valid values', ToastDuration.Short);
       return;
     }
 

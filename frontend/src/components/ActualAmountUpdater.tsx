@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
 import type { Tracker } from '../types/trackers';
 import { getLatestActualValue, formatCurrency } from '../utils/calculations';
+import { useToast } from '../contexts/ToastContext';
+import { ToastDuration } from './Toast';
 import './ActualAmountUpdater.css';
 
 interface ActualAmountUpdaterProps {
@@ -12,6 +14,7 @@ interface ActualAmountUpdaterProps {
 
 export function ActualAmountUpdater({ tracker, onUpdate, onDelete }: ActualAmountUpdaterProps) {
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const { showError, showSuccess } = useToast();
 
   // Get latest actual amount or use starting amount as default
   const getDefaultAmount = () => {
@@ -30,17 +33,21 @@ export function ActualAmountUpdater({ tracker, onUpdate, onDelete }: ActualAmoun
     e.preventDefault();
 
     if (!amount || parseFloat(amount) <= 0) {
-      alert('Please enter a valid amount');
+      showError('Please enter a valid amount', ToastDuration.Short);
       return;
     }
 
     onUpdate(date, parseFloat(amount));
+    showSuccess('Actual amount updated successfully', ToastDuration.Short);
     // Keep the amount so user can easily make small adjustments
   };
 
   const handleDelete = (dateToDelete: string) => {
+    // For now, we'll keep the confirm dialog as it's a destructive action
+    // In a future improvement, we could replace this with a custom confirmation modal
     if (confirm(`Are you sure you want to delete the entry from ${format(parseISO(dateToDelete), 'MMM dd, yyyy')}?`)) {
       onDelete(dateToDelete);
+      showSuccess('Entry deleted successfully', ToastDuration.Short);
     }
   };
 

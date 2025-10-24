@@ -44,7 +44,11 @@
 .instrument-symbol {
   font-weight: 600;
   font-size: 0.95rem;
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+}
+
+.instrument-details {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #aaaaaa);
 }
 
 .instrument-allocation {

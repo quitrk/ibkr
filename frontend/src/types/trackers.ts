@@ -9,6 +9,7 @@ export interface ProjectionConfig {
 export interface InstrumentConfig {
   id: string;
   symbol: string; // Stock ticker symbol (e.g., AAPL, TSLA)
+  visible: boolean;
 }
 
 export interface TrackerConfig {

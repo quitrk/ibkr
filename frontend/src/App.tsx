@@ -19,11 +19,14 @@ import {
   deleteCashFlow,
 } from './api/storage';
 import { useAppContext } from './contexts/AppContext';
+import { ToastProvider, useToast } from './contexts/ToastContext';
+import { ToastDuration } from './components/Toast';
 import './App.css';
 
-function App() {
+function AppContent() {
   const { trackers, setTrackers, selectedTracker, setSelectedTracker } = useAppContext();
   const [dateRange, setDateRange] = useState<DateRange | null>(null);
+  const { showSuccess } = useToast();
 
   // Use ref to track the currently selected tracker to avoid stale closures
   const selectedTrackerRef = useRef(selectedTracker);
@@ -52,6 +55,7 @@ function App() {
     const updated = getAllTrackers();
     setTrackers(updated);
     setSelectedTracker(newTracker);
+    showSuccess(`Tracker "${config.name}" created successfully`, ToastDuration.Short);
   };
 
   const handleUpdateActual = (date: string, amount: number) => {
@@ -125,10 +129,12 @@ function App() {
       setSelectedTracker(refreshed);
       // DateRangeSelector will handle resetting its view based on config changes
     }
-  }, [selectedTracker]);
+    showSuccess(`Tracker "${config.name}" updated successfully`, ToastDuration.Short);
+  }, [selectedTracker, showSuccess]);
 
   const handleDeleteTracker = (id: string) => {
     if (confirm('Are you sure you want to delete this trade tracker?')) {
+      const trackerToDelete = trackers.find(t => t.config.id === id);
       deleteTracker(id);
       const updated = getAllTrackers();
       setTrackers(updated);
@@ -136,6 +142,8 @@ function App() {
       if (selectedTracker?.config.id === id) {
         setSelectedTracker(updated.length > 0 ? updated[0] : null);
       }
+
+      showSuccess(`Tracker "${trackerToDelete?.config.name}" deleted successfully`, ToastDuration.Short);
     }
   };
 
@@ -274,6 +282,14 @@ function App() {
         )}
       </div>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <ToastProvider>
+      <AppContent />
+    </ToastProvider>
   );
 }
 

@@ -4,6 +4,8 @@ import type { Tracker, TrackerConfig, DepositSchedule, ProjectionConfig, Instrum
 import { ProjectionsList } from './ProjectionsList';
 import { InstrumentsList } from './InstrumentsList';
 import { Dialog } from './Dialog';
+import { useToast } from '../contexts/ToastContext';
+import { ToastDuration } from './Toast';
 
 interface TrackerEditDialogProps {
   isOpen: boolean;
@@ -19,6 +21,7 @@ export function TrackerEditDialog({
   onCancel,
 }: TrackerEditDialogProps) {
   const isEditMode = !!tracker;
+  const { showError } = useToast();
 
   // Initialize form state
   const today = new Date();
@@ -69,27 +72,27 @@ export function TrackerEditDialog({
     // Validate name
     const trackerName = name.trim() || (isEditMode ? '' : 'My Trade');
     if (isEditMode && !trackerName) {
-      alert('Please enter a name');
+      showError('Please enter a name', ToastDuration.Short);
       return;
     }
 
     // Validate amounts
     const amount = parseFloat(startingAmount);
     if (isNaN(amount) || amount <= 0) {
-      alert('Please enter a valid starting amount');
+      showError('Please enter a valid starting amount', ToastDuration.Short);
       return;
     }
 
     // Validate dates
     if (new Date(endDate) <= new Date(startDate)) {
-      alert('End date must be after start date');
+      showError('End date must be after start date', ToastDuration.Short);
       return;
     }
 
     // Validate deposit schedule amount if provided
     const schedAmount = parseFloat(scheduleAmount);
     if (scheduleAmount && (isNaN(schedAmount) || schedAmount < 0)) {
-      alert('Please enter a valid deposit amount');
+      showError('Please enter a valid deposit amount', ToastDuration.Short);
       return;
     }
 

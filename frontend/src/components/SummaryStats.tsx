@@ -20,9 +20,13 @@ type ComparisonType = 'projection' | 'instrument';
 export function SummaryStats({ tracker }: SummaryStatsProps) {
   const { instrumentPerformance } = useAppContext();
 
-  // Default to first projection if available, otherwise first instrument
-  const defaultType: ComparisonType = tracker.config.projections && tracker.config.projections.length > 0 ? 'projection' : 'instrument';
-  const defaultId = tracker.config.projections?.[0]?.id || tracker.config.instruments?.[0]?.id || null;
+  // Get visible projections and instruments
+  const visibleProjections = tracker.config.projections?.filter(p => p.visible) || [];
+  const visibleInstruments = tracker.config.instruments?.filter(inst => inst.visible) || [];
+
+  // Default to first visible projection if available, otherwise first visible instrument
+  const defaultType: ComparisonType = visibleProjections.length > 0 ? 'projection' : 'instrument';
+  const defaultId = visibleProjections[0]?.id || visibleInstruments[0]?.id || null;
 
   const [selectedType, setSelectedType] = useState<ComparisonType>(defaultType);
   const [selectedId, setSelectedId] = useState<string | null>(defaultId);
@@ -106,20 +110,27 @@ export function SummaryStats({ tracker }: SummaryStatsProps) {
   // Calculate actual average increase
   const actualAvgIncrease = useMemo(() => {
     const cashFlows = tracker.cashFlows || [];
-    const intervalDays = tracker.config.projections?.[0]?.intervalDays || 30;
+    // Use selected projection's intervalDays if projection is selected, otherwise use first projection
+    let intervalDays = 30;
+    if (selectedType === 'projection' && selectedId) {
+      const selectedProjection = tracker.config.projections?.find(p => p.id === selectedId);
+      intervalDays = selectedProjection?.intervalDays || 30;
+    } else {
+      intervalDays = tracker.config.projections?.[0]?.intervalDays || 30;
+    }
     const result = calculateActualAverageIncrease(
       tracker.actualData,
       intervalDays,
       cashFlows
     );
     return result?.intervalPercentage ?? null;
-  }, [tracker.actualData, tracker.config.projections, tracker.cashFlows]);
+  }, [tracker.actualData, tracker.config.projections, tracker.cashFlows, selectedType, selectedId]);
 
-  const hasProjections = tracker.config.projections && tracker.config.projections.length > 0;
-  const hasInstruments = tracker.config.instruments && tracker.config.instruments.length > 0;
+  const hasProjections = visibleProjections.length > 0;
+  const hasInstruments = visibleInstruments.length > 0;
   const hasMultipleOptions = (hasProjections && hasInstruments) ||
-    (hasProjections && tracker.config.projections!.length > 1) ||
-    (hasInstruments && tracker.config.instruments!.length > 1);
+    (hasProjections && visibleProjections.length > 1) ||
+    (hasInstruments && visibleInstruments.length > 1);
 
   if (!stats) {
     return (
@@ -150,7 +161,7 @@ export function SummaryStats({ tracker }: SummaryStatsProps) {
             >
               {hasProjections && (
                 <optgroup label="Projections">
-                  {tracker.config.projections!.map((projection, index) => (
+                  {visibleProjections.map((projection, index) => (
                     <option key={projection.id} value={`projection:${projection.id}`}>
                       {projection.name || `Projection ${index + 1}`}
                     </option>
@@ -159,7 +170,7 @@ export function SummaryStats({ tracker }: SummaryStatsProps) {
               )}
               {hasInstruments && (
                 <optgroup label="Instruments">
-                  {tracker.config.instruments!.map((instrument) => {
+                  {visibleInstruments.map((instrument) => {
                     const perfData = instrumentPerformance.get(instrument.id);
                     return (
                       <option key={instrument.id} value={`instrument:${instrument.id}`}>
