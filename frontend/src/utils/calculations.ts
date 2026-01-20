@@ -1,11 +1,130 @@
-import { addDays, addWeeks, addMonths, parseISO, format, isWeekend } from 'date-fns';
+import { addDays, addWeeks, addMonths, parseISO, format, isWeekend, getDay, getYear, getMonth, getDate } from 'date-fns';
 import type { ProjectedDataPoint, ActualDataPoint, CashFlow, DepositSchedule, ProjectionConfig } from '../types/trackers';
 
 /**
- * Check if a date is a business day (Monday-Friday)
+ * Calculate Easter Sunday for a given year using the Anonymous Gregorian algorithm
+ */
+function getEasterSunday(year: number): Date {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31) - 1; // 0-indexed month
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month, day);
+}
+
+/**
+ * Get the nth occurrence of a weekday in a month
+ * @param year - The year
+ * @param month - The month (0-indexed)
+ * @param weekday - Day of week (0 = Sunday, 1 = Monday, etc.)
+ * @param n - Which occurrence (1 = first, 2 = second, etc., -1 = last)
+ */
+function getNthWeekdayOfMonth(year: number, month: number, weekday: number, n: number): Date {
+  if (n === -1) {
+    // Last occurrence - start from end of month
+    const lastDay = new Date(year, month + 1, 0);
+    let date = lastDay;
+    while (getDay(date) !== weekday) {
+      date = addDays(date, -1);
+    }
+    return date;
+  }
+
+  // Start from first day of month
+  let date = new Date(year, month, 1);
+  let count = 0;
+
+  while (count < n) {
+    if (getDay(date) === weekday) {
+      count++;
+      if (count === n) return date;
+    }
+    date = addDays(date, 1);
+  }
+
+  return date;
+}
+
+/**
+ * Get observed holiday date (handles weekend adjustments)
+ * If holiday falls on Saturday, observed on Friday
+ * If holiday falls on Sunday, observed on Monday
+ */
+function getObservedDate(date: Date): Date {
+  const day = getDay(date);
+  if (day === 6) return addDays(date, -1); // Saturday -> Friday
+  if (day === 0) return addDays(date, 1);  // Sunday -> Monday
+  return date;
+}
+
+/**
+ * Get all NYSE market holidays for a given year
+ */
+function getNYSEHolidays(year: number): Date[] {
+  const holidays: Date[] = [];
+
+  // New Year's Day (January 1) - observed
+  holidays.push(getObservedDate(new Date(year, 0, 1)));
+
+  // Martin Luther King Jr. Day (3rd Monday in January)
+  holidays.push(getNthWeekdayOfMonth(year, 0, 1, 3));
+
+  // Presidents' Day (3rd Monday in February)
+  holidays.push(getNthWeekdayOfMonth(year, 1, 1, 3));
+
+  // Good Friday (Friday before Easter)
+  const easter = getEasterSunday(year);
+  holidays.push(addDays(easter, -2));
+
+  // Memorial Day (Last Monday in May)
+  holidays.push(getNthWeekdayOfMonth(year, 4, 1, -1));
+
+  // Juneteenth National Independence Day (June 19) - observed (since 2021)
+  if (year >= 2021) {
+    holidays.push(getObservedDate(new Date(year, 5, 19)));
+  }
+
+  // Independence Day (July 4) - observed
+  holidays.push(getObservedDate(new Date(year, 6, 4)));
+
+  // Labor Day (1st Monday in September)
+  holidays.push(getNthWeekdayOfMonth(year, 8, 1, 1));
+
+  // Thanksgiving Day (4th Thursday in November)
+  holidays.push(getNthWeekdayOfMonth(year, 10, 4, 4));
+
+  // Christmas Day (December 25) - observed
+  holidays.push(getObservedDate(new Date(year, 11, 25)));
+
+  return holidays;
+}
+
+/**
+ * Check if a date is a NYSE market holiday
+ */
+function isMarketHoliday(date: Date): boolean {
+  const year = getYear(date);
+  const holidays = getNYSEHolidays(year);
+
+  const dateStr = format(date, 'yyyy-MM-dd');
+  return holidays.some(holiday => format(holiday, 'yyyy-MM-dd') === dateStr);
+}
+
+/**
+ * Check if a date is a trading day (not a weekend and not a market holiday)
  */
 function isBusinessDay(date: Date): boolean {
-  return !isWeekend(date);
+  return !isWeekend(date) && !isMarketHoliday(date);
 }
 
 /**
@@ -285,9 +404,13 @@ export function calculateActualAverageIncrease(
         endValue: endValueBeforeCashFlow,
       });
 
-      // The next segment starts after the cash flow, with the actual recorded value
+      // The next segment starts after the cash flow
       segmentStartDate = cfDate;
-      segmentStartValue = valueAtOrBeforeCF.amount; // This already includes the cash flow
+      // If data point is exactly at cash flow date, it already includes the cash flow
+      // Otherwise, add the cash flow to get the correct starting value
+      segmentStartValue = isExactlyAtCashFlow
+        ? valueAtOrBeforeCF.amount
+        : valueAtOrBeforeCF.amount + cfAmount;
     }
   }
 

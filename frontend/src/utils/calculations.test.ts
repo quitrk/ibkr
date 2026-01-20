@@ -447,6 +447,53 @@ describe('calculateActualAverageIncrease', () => {
     // Interval percentage (5 days): (1.00969)^5 - 1 ≈ 0.0494 or 4.94%
     expect(result!.intervalPercentage).toBeCloseTo(4.94, 1);
   });
+
+  it('should handle deposit when no data point exists on cash flow date', () => {
+    // Scenario: deposit happens between data points
+    // Dec 31: $24,200, Jan 2: $25,028.25, Jan 9: $1,500 deposit (no data), Jan 13: $25,110.04
+    const actualData: ActualDataPoint[] = [
+      { date: '2025-12-31', amount: 24200 },
+      { date: '2026-01-02', amount: 25028.25 },
+      { date: '2026-01-13', amount: 25110.04 },
+    ];
+    const cashFlows: CashFlow[] = [
+      { id: 'cf1', date: '2026-01-09', amount: 1500, type: 'deposit' }
+    ];
+
+    const result = calculateActualAverageIncrease(actualData, 3, cashFlows);
+
+    expect(result).not.toBeNull();
+
+    // Segment 1 (Dec 31 to Jan 2, 2 business days): 24200 -> 25028.25
+    // Return: 25028.25/24200 = 1.0342
+    // Segment 2 (Jan 9 to Jan 13): starts with 25028.25 + 1500 = 26528.25 -> 25110.04
+    // Return: 25110.04/26528.25 = 0.9465 (negative growth!)
+    // Cumulative: 1.0342 * 0.9465 = 0.9789
+    // The result should show NEGATIVE growth, not positive
+    expect(result!.intervalPercentage).toBeLessThan(0);
+  });
+
+  it('should handle withdrawal when no data point exists on cash flow date', () => {
+    const actualData: ActualDataPoint[] = [
+      { date: '2025-10-09', amount: 10000 },  // Thursday
+      { date: '2025-10-10', amount: 10200 },  // Friday - grew 2%
+      { date: '2025-10-15', amount: 9500 },   // Wednesday - after withdrawal
+    ];
+    const cashFlows: CashFlow[] = [
+      { id: 'cf1', date: '2025-10-13', amount: 500, type: 'withdrawal' } // Monday, no data point
+    ];
+
+    const result = calculateActualAverageIncrease(actualData, 5, cashFlows);
+
+    expect(result).not.toBeNull();
+
+    // Segment 1 (Thu to Fri, 1 business day): 10000 -> 10200
+    // Return: 10200/10000 = 1.02
+    // Segment 2 (Mon to Wed): starts with 10200 - 500 = 9700 -> 9500
+    // Return: 9500/9700 = 0.9794 (negative growth)
+    // The withdrawal should be subtracted from the starting value
+    expect(result!.intervalPercentage).toBeLessThan(2); // Less than 2% due to negative segment 2
+  });
 });
 
 describe('calculateVariance', () => {
@@ -962,6 +1009,128 @@ describe('formatCurrency', () => {
     expect(formatCurrency(0.01)).toBe('$0.01');
     expect(formatCurrency(0.001)).toBe('$0.00'); // Rounds down
     expect(formatCurrency(0.005)).toBe('$0.01'); // Rounds up
+  });
+});
+
+describe('market holidays', () => {
+  it('should exclude MLK Day from business days', () => {
+    // MLK Day 2025 is January 20 (3rd Monday in January)
+    // Count business days from Jan 17 (Friday) to Jan 21 (Tuesday)
+    const startDate = new Date('2025-01-17'); // Friday
+    const endDate = new Date('2025-01-21'); // Tuesday
+
+    // Without holidays: Sat (skip), Sun (skip), Mon (1), Tue (2) = 2 days
+    // With MLK Day: Sat (skip), Sun (skip), Mon (holiday skip), Tue (1) = 1 day
+    expect(countBusinessDays(startDate, endDate)).toBe(1);
+  });
+
+  it('should exclude Presidents Day from business days', () => {
+    // Presidents Day 2025 is February 17 (3rd Monday in February)
+    const startDate = new Date('2025-02-14'); // Friday
+    const endDate = new Date('2025-02-18'); // Tuesday
+
+    // Without holidays: Sat (skip), Sun (skip), Mon (1), Tue (2) = 2 days
+    // With Presidents Day: Sat (skip), Sun (skip), Mon (holiday skip), Tue (1) = 1 day
+    expect(countBusinessDays(startDate, endDate)).toBe(1);
+  });
+
+  it('should exclude Good Friday from business days', () => {
+    // Good Friday 2025 is April 18
+    const startDate = new Date('2025-04-17'); // Thursday
+    const endDate = new Date('2025-04-21'); // Monday
+
+    // Without holidays: Fri (1), Sat (skip), Sun (skip), Mon (2) = 2 days
+    // With Good Friday: Fri (holiday skip), Sat (skip), Sun (skip), Mon (1) = 1 day
+    expect(countBusinessDays(startDate, endDate)).toBe(1);
+  });
+
+  it('should exclude Memorial Day from business days', () => {
+    // Memorial Day 2025 is May 26 (last Monday in May)
+    const startDate = new Date('2025-05-23'); // Friday
+    const endDate = new Date('2025-05-27'); // Tuesday
+
+    // With Memorial Day: Sat (skip), Sun (skip), Mon (holiday skip), Tue (1) = 1 day
+    expect(countBusinessDays(startDate, endDate)).toBe(1);
+  });
+
+  it('should exclude Juneteenth from business days', () => {
+    // Juneteenth 2025 is June 19 (Thursday)
+    const startDate = new Date('2025-06-18'); // Wednesday
+    const endDate = new Date('2025-06-20'); // Friday
+
+    // Without holidays: Thu (1), Fri (2) = 2 days
+    // With Juneteenth: Thu (holiday skip), Fri (1) = 1 day
+    expect(countBusinessDays(startDate, endDate)).toBe(1);
+  });
+
+  it('should exclude Independence Day from business days', () => {
+    // July 4, 2025 is a Friday
+    const startDate = new Date('2025-07-03'); // Thursday
+    const endDate = new Date('2025-07-07'); // Monday
+
+    // Without holidays: Fri (1), Sat (skip), Sun (skip), Mon (2) = 2 days
+    // With July 4: Fri (holiday skip), Sat (skip), Sun (skip), Mon (1) = 1 day
+    expect(countBusinessDays(startDate, endDate)).toBe(1);
+  });
+
+  it('should exclude Labor Day from business days', () => {
+    // Labor Day 2025 is September 1 (1st Monday in September)
+    const startDate = new Date('2025-08-29'); // Friday
+    const endDate = new Date('2025-09-02'); // Tuesday
+
+    // With Labor Day: Sat (skip), Sun (skip), Mon (holiday skip), Tue (1) = 1 day
+    expect(countBusinessDays(startDate, endDate)).toBe(1);
+  });
+
+  it('should exclude Thanksgiving from business days', () => {
+    // Thanksgiving 2025 is November 27 (4th Thursday in November)
+    const startDate = new Date('2025-11-26'); // Wednesday
+    const endDate = new Date('2025-11-28'); // Friday
+
+    // Without holidays: Thu (1), Fri (2) = 2 days
+    // With Thanksgiving: Thu (holiday skip), Fri (1) = 1 day
+    expect(countBusinessDays(startDate, endDate)).toBe(1);
+  });
+
+  it('should exclude Christmas from business days', () => {
+    // Christmas 2025 is December 25 (Thursday)
+    const startDate = new Date('2025-12-24'); // Wednesday
+    const endDate = new Date('2025-12-26'); // Friday
+
+    // Without holidays: Thu (1), Fri (2) = 2 days
+    // With Christmas: Thu (holiday skip), Fri (1) = 1 day
+    expect(countBusinessDays(startDate, endDate)).toBe(1);
+  });
+
+  it('should handle observed holidays when they fall on weekends', () => {
+    // July 4, 2026 is a Saturday, observed on Friday July 3
+    const startDate = new Date('2026-07-02'); // Thursday
+    const endDate = new Date('2026-07-06'); // Monday
+
+    // Without observed: Thu->Fri (1), Sat (skip), Sun (skip), Mon (2) = 2 days
+    // With observed July 4 on Friday: Thu->Fri (holiday skip), Sat (skip), Sun (skip), Mon (1) = 1 day
+    expect(countBusinessDays(startDate, endDate)).toBe(1);
+  });
+
+  it('should handle New Years Day observed on Monday when Jan 1 is Sunday', () => {
+    // Jan 1, 2028 is a Saturday, observed on Friday Dec 31, 2027
+    // Jan 1, 2023 was a Sunday, observed on Monday Jan 2
+    const startDate = new Date('2022-12-30'); // Friday
+    const endDate = new Date('2023-01-03'); // Tuesday
+
+    // Fri (skip - not in range since exclusive), Sat (skip), Sun (skip), Mon (holiday observed), Tue (1) = 1 day
+    expect(countBusinessDays(startDate, endDate)).toBe(1);
+  });
+
+  it('should skip MLK Day when adding business days', () => {
+    // Start on Friday Jan 17, 2025
+    // Add 1 business day should skip MLK Day (Jan 20) and land on Jan 21
+    const startDate = new Date('2025-01-17');
+    const result = addBusinessDays(startDate, 1);
+
+    expect(result.getFullYear()).toBe(2025);
+    expect(result.getMonth()).toBe(0); // January
+    expect(result.getDate()).toBe(21); // Tuesday, skipping weekend and MLK Day
   });
 });
 
